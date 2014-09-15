@@ -19,6 +19,15 @@
 
 using namespace std;
 
+//----------Global Variables---------------//
+int mll_minbin=0;  //  Why not 50?
+int mll_maxbin=200;
+int mll_binsize=5;
+int met_minbin=0;  //
+int met_maxbin=200;
+int met_binsize=2;
+//-----------------------------------------//
+
 void h_format(TH1F *histo)
 {
 
@@ -26,7 +35,7 @@ void h_format(TH1F *histo)
   Color_t color=kMagenta+4;
 
   if(name.Contains("tar") && name.Contains("mll"))
-	{histo->Rebin(10);}
+	{histo->Rebin(5);}
   else if (name.Contains("inc") && name.Contains("mll"))
 	{histo->Rebin(5);}
   else if (name.Contains("met"))
@@ -108,14 +117,21 @@ void h_format(TH1F *histo)
 void overflow(TH1F *histo)
 {
   double uncertainty=0.;
+  int overflowbin=-1;
+  TString name=histo->GetName();
 
-  histo->SetBinContent(histo->GetNbinsX(),histo->GetBinContent(histo->GetNbinsX())+histo->IntegralAndError(histo->GetNbinsX(),-1,uncertainty));
+  if(name.Contains("mll"))
+	{overflowbin=((mll_maxbin - mll_minbin)/mll_binsize);}
+  else if(name.Contains("met"))
+	{overflowbin=((met_maxbin - met_minbin)/met_binsize)+1;}
 
-  histo->SetBinError((histo->GetNbinsX()),sqrt(pow(histo->GetBinError((histo->GetNbinsX())),2) + pow(uncertainty,2)));
+  histo->SetBinContent(overflowbin,histo->GetBinContent(overflowbin)+histo->IntegralAndError(overflowbin,-1,uncertainty));
+
+  histo->SetBinError(overflowbin,sqrt(pow(histo->GetBinError((overflowbin)),2) + pow(uncertainty,2)));
 }
 
 
-int DrawPlots()
+int TestDrawPlots()
 {
 
   //load histos
@@ -481,7 +497,7 @@ int DrawPlots()
 	  h_metsum_mumu_tar2->Add(v_met_mumu_tar2[i]);
 	  h_metsum_emu_tar2->Add(v_met_emu_tar2[i]);
 	}
-
+  /*
   overflow(sum);
   overflow(sum2);
   overflow(tarsum);
@@ -495,7 +511,7 @@ int DrawPlots()
   overflow(h_metsum_ee_tar2);
   overflow(h_metsum_mumu_tar2);
   overflow(h_metsum_emu_tar2);
-
+  */
   cout<<"\n End Summing \n"<<endl;
 
   //--------------------------------------------------------------------------------//
@@ -541,7 +557,7 @@ int DrawPlots()
   //-----------------------------------------------------------------------------------//
   //----------------------------------Drawing------------------------------------------//
   //-----------------------------------------------------------------------------------//  
-  /*
+  
   //-----------------------mll ee inc------------------------- -//
   //Canvas
   TCanvas *c1=new TCanvas("c1","mll ee inc ",800,800);
@@ -797,7 +813,7 @@ int DrawPlots()
   h_mll_ee_tar_data_clone2->Draw();
 
   //-------------------------------------------------------------//
-  */
+  
   //---------------------MET ee INC------------------------------//
   //Canvas
   TCanvas *c5=new TCanvas("c5","Met ee inc",800,800);
@@ -849,7 +865,7 @@ int DrawPlots()
   //Divide
   h_met_ee_inc_data_clone->Divide(h_met_ee_inc_data_clone,h_metsum_ee_inc);
 
-  overflow(h_met_ee_inc_data_clone);
+  // overflow(h_met_ee_inc_data_clone);
 
   h_met_ee_inc_data_clone->GetXaxis()->SetRangeUser(0,200); 
   h_met_ee_inc_data_clone->GetYaxis()->SetRangeUser(0,3);
