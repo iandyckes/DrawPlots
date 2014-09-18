@@ -1611,7 +1611,7 @@ int CorrDrawPlots()
   h_met_ee_inc_datacomp_clone->Draw();
   
   //-------------------------------------------------------------//
-
+  */
   //---------------------MET emu INC------------------------------//
   //Canvas
   TCanvas *c17=new TCanvas("c17","Met emu inc",800,800);
@@ -1800,28 +1800,30 @@ int CorrDrawPlots()
   h_met_emu_tar2_data_clone->Draw();
 
   //-------------------------------------------------------------//
-  */
-
-  //---------------------------------------//
-  /*
-  c5->SaveAs("./pics/ee_inc.jpg");
-  c6->SaveAs("./pics/mumu_inc.jpg");
-  c7->SaveAs("./pics/ee_tar0.jpg");
-  c8->SaveAs("./pics/mumu_tar0.jpg");
-  c9->SaveAs("./pics/ee_tar2.jpg");
-  c10->SaveAs("./pics/mumu_tar2.jpg");
-  c11->SaveAs("./pics/ee_vs_mumu_tar0_MC.jpg");
-  c12->SaveAs("./pics/ee_vs_mumu_tar0_data.jpg");
-  c13->SaveAs("./pics/ee_vs_mumu_tar2_MC.jpg");
-  c14->SaveAs("./pics/ee_vs_mumu_tar2_data.jpg");
-  c15->SaveAs("./pics/ee_vs_mumu_inc_MC.jpg");
-  c16->SaveAs("./pics/ee_vs_mumu_inc_data.jpg");
-  c17->SaveAs("./pics/emu_inc.jpg");
-  c18->SaveAs("./pics/emu_tar0.jpg");
-  c19->SaveAs("./pics/emu_tar2.jpg");
-  */
   
 
+  //---------------------------------------//
+  /* 
+  c1->SaveAs("./pics/mll_inc.jpg");
+  //  c2->SaveAs("./pics/mll_mumu_inc.jpg");
+  c3->SaveAs("./pics/mll_tar.jpg");
+  //  c4->SaveAs("./pics/mll_mumu_inc.jpg");
+  c5->SaveAs("./pics/met_inc.jpg");
+  //  c6->SaveAs("./pics/mumu_inc.jpg");
+  c7->SaveAs("./pics/met_tar0.jpg");
+  //  c8->SaveAs("./pics/mumu_tar0.jpg");
+  c9->SaveAs("./pics/met_tar2.jpg");
+  //  c10->SaveAs("./pics/mumu_tar2.jpg");
+  //  c11->SaveAs("./pics/ee_vs_mumu_tar0_MC.jpg");
+  //  c12->SaveAs("./pics/ee_vs_mumu_tar0_data.jpg");
+  //  c13->SaveAs("./pics/ee_vs_mumu_tar2_MC.jpg");
+  //  c14->SaveAs("./pics/ee_vs_mumu_tar2_data.jpg");
+  //  c15->SaveAs("./pics/ee_vs_mumu_inc_MC.jpg");
+  //  c16->SaveAs("./pics/ee_vs_mumu_inc_data.jpg");
+  c17->SaveAs("./pics/emu_met_inc.jpg");
+  c18->SaveAs("./pics/emu_met_tar0.jpg");
+  c19->SaveAs("./pics/emu_met_tar2.jpg");
+  */
   
   return 0;
 }

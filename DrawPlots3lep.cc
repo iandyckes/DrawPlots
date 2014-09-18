@@ -140,7 +140,7 @@ void overflow(TH1F *histo)
   histo->SetBinError(overflowbin,sqrt(pow(histo->GetBinError((overflowbin)),2) + pow(uncertainty,2)));
 }
 
-int TestDrawPlots3lep()
+int DrawPlots3lep()
 {
 
   //load histos

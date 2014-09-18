@@ -71,12 +71,17 @@ void h_format(TH1F *histo)
 		  if(name.Contains("ee"))
 			{
 			  histo->GetXaxis()->SetTitle("met_{ee} (GeV)"); 
-			  histo->GetYaxis()->SetTitle("Events / 10 GeV");
+			  histo->GetYaxis()->SetTitle("Events / 2 GeV");
 			}
 		  else if(name.Contains("mumu"))
 			{
 			  histo->GetXaxis()->SetTitle("met_{mumu} (GeV)"); 
-			  histo->GetYaxis()->SetTitle("Events / 10 GeV");
+			  histo->GetYaxis()->SetTitle("Events / 2 GeV");
+			}
+		  else if(name.Contains("emu"))
+			{
+			  histo->GetXaxis()->SetTitle("met_{emu} (GeV)"); 
+			  histo->GetYaxis()->SetTitle("Events / 2 GeV");
 			}
 		}
 
@@ -131,7 +136,7 @@ void overflow(TH1F *histo)
 }
 
 
-int TestDrawPlots()
+int DrawPlots()
 {
 
   //load histos

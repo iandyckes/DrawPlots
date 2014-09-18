@@ -20,7 +20,7 @@ double err_ratio(double data, double data_err, double MC, double MC_err)
 }
 
 
-int GetYields()
+int CorrGetYields()
 {
 
   //-------------------------------------------------Get Yields-----------------------------------------------------------------------..
@@ -396,10 +396,10 @@ int GetYields()
   //----------------------------------------------------MET----------------------------------------------------------//
   //-----------------------------------------------------------------------------------------------------------------//
 
-  double Ree= 0;// 0.440974;
-  double Rmumu= 0;// 0.524255;
+  double Ree= 0.440974;
+  double Rmumu= 0.524255;
 
-  //------------------------------------------met ee inc--------------------------------------------------------------//
+  //------------------------------------------met ee+mumu inc--------------------------------------------------------------//
   h_met_ee_inc_zjets->Add(h_met_emu_inc_zjets,- Ree);
   h_met_ee_inc_ttbar->Add(h_met_emu_inc_ttbar,- Ree);
   h_met_ee_inc_ww->Add(h_met_emu_inc_ww,- Ree);
@@ -409,7 +409,28 @@ int GetYields()
   h_met_ee_inc_ttv->Add(h_met_emu_inc_ttv,- Ree);
   h_met_ee_inc_vvv->Add(h_met_emu_inc_vvv,- Ree);
   h_met_ee_inc_data->Add(h_met_emu_inc_data,- Ree);
+
+  h_met_mumu_inc_zjets->Add(h_met_emu_inc_zjets,- Rmumu);
+  h_met_mumu_inc_ttbar->Add(h_met_emu_inc_ttbar,- Rmumu);
+  h_met_mumu_inc_ww->Add(h_met_emu_inc_ww,- Rmumu);
+  h_met_mumu_inc_wz->Add(h_met_emu_inc_wz,- Rmumu);
+  h_met_mumu_inc_zz->Add(h_met_emu_inc_zz,- Rmumu);
+  h_met_mumu_inc_singlet->Add(h_met_emu_inc_singlet,- Rmumu);
+  h_met_mumu_inc_ttv->Add(h_met_emu_inc_ttv,- Rmumu);
+  h_met_mumu_inc_vvv->Add(h_met_emu_inc_vvv,- Rmumu);
+  h_met_mumu_inc_data->Add(h_met_emu_inc_data,- Rmumu);
   
+  //Merge ee and mumu
+  h_met_ee_inc_zjets->Add(h_met_mumu_inc_zjets);
+  h_met_ee_inc_ttbar->Add(h_met_mumu_inc_ttbar);
+  h_met_ee_inc_ww->Add(h_met_mumu_inc_ww);
+  h_met_ee_inc_wz->Add(h_met_mumu_inc_wz);
+  h_met_ee_inc_zz->Add(h_met_mumu_inc_zz);
+  h_met_ee_inc_singlet->Add(h_met_mumu_inc_singlet);
+  h_met_ee_inc_ttv->Add(h_met_mumu_inc_ttv);
+  h_met_ee_inc_vvv->Add(h_met_mumu_inc_vvv);
+  h_met_ee_inc_data->Add(h_met_mumu_inc_data);
+
   TH1F *h_metsum_ee_inc = new TH1F("h_metsum_ee_inc","Met ee inc",350,0,350);
   h_metsum_ee_inc->Add(h_met_ee_inc_zjets);
   h_metsum_ee_inc->Add(h_met_ee_inc_ttbar);
@@ -491,6 +512,7 @@ int GetYields()
   err8_ratio_ee_inc=err_ratio(val8_data_ee_inc, err8_data_ee_inc, val8_metsum_ee_inc, err8_metsum_ee_inc);
 
   //----------------------------------------------------------------------------------------------//
+  /*
   //--------------------------------------met mumu inc--------------------------------------------//
   h_met_mumu_inc_zjets->Add(h_met_emu_inc_zjets,- Rmumu);
   h_met_mumu_inc_ttbar->Add(h_met_emu_inc_ttbar,- Rmumu);
@@ -582,7 +604,8 @@ int GetYields()
   err7_ratio_mumu_inc=err_ratio(val7_data_mumu_inc, err7_data_mumu_inc, val7_metsum_mumu_inc, err7_metsum_mumu_inc);
   err8_ratio_mumu_inc=err_ratio(val8_data_mumu_inc, err8_data_mumu_inc, val8_metsum_mumu_inc, err8_metsum_mumu_inc);
   //----------------------------------------------------------------------------------------------//
-  //------------------------------------------met ee tar0--------------------------------------------------------------//
+  */
+  //------------------------------------------met ee+mumu tar0--------------------------------------------------------------//
   h_met_ee_tar0_zjets->Add(h_met_emu_tar0_zjets,- Ree);
   h_met_ee_tar0_ttbar->Add(h_met_emu_tar0_ttbar,- Ree);
   h_met_ee_tar0_ww->Add(h_met_emu_tar0_ww,- Ree);
@@ -592,8 +615,28 @@ int GetYields()
   h_met_ee_tar0_ttv->Add(h_met_emu_tar0_ttv,- Ree);
   h_met_ee_tar0_vvv->Add(h_met_emu_tar0_vvv,- Ree);
   h_met_ee_tar0_data->Add(h_met_emu_tar0_data,- Ree);
+
+  h_met_mumu_tar0_zjets->Add(h_met_emu_tar0_zjets,- Rmumu);
+  h_met_mumu_tar0_ttbar->Add(h_met_emu_tar0_ttbar,- Rmumu);
+  h_met_mumu_tar0_ww->Add(h_met_emu_tar0_ww,- Rmumu);
+  h_met_mumu_tar0_wz->Add(h_met_emu_tar0_wz,- Rmumu);
+  h_met_mumu_tar0_zz->Add(h_met_emu_tar0_zz,- Rmumu);
+  h_met_mumu_tar0_singlet->Add(h_met_emu_tar0_singlet,- Rmumu);
+  h_met_mumu_tar0_ttv->Add(h_met_emu_tar0_ttv,- Rmumu);
+  h_met_mumu_tar0_vvv->Add(h_met_emu_tar0_vvv,- Rmumu);
+  h_met_mumu_tar0_data->Add(h_met_emu_tar0_data,- Rmumu);
+
+  h_met_ee_tar0_zjets->Add(h_met_mumu_tar0_zjets);
+  h_met_ee_tar0_ttbar->Add(h_met_mumu_tar0_ttbar);
+  h_met_ee_tar0_ww->Add(h_met_mumu_tar0_ww);
+  h_met_ee_tar0_wz->Add(h_met_mumu_tar0_wz);
+  h_met_ee_tar0_zz->Add(h_met_mumu_tar0_zz);
+  h_met_ee_tar0_singlet->Add(h_met_mumu_tar0_singlet);
+  h_met_ee_tar0_ttv->Add(h_met_mumu_tar0_ttv);
+  h_met_ee_tar0_vvv->Add(h_met_mumu_tar0_vvv);
+  h_met_ee_tar0_data->Add(h_met_mumu_tar0_data);
   
-  TH1F *h_metsum_ee_tar0 = new TH1F("h_metsum_ee_tar0","Met ee tar0",350,0,350);
+  TH1F *h_metsum_ee_tar0 = new TH1F("h_metsum_ee_tar0","Met ee+mumu tar0",350,0,350);
   h_metsum_ee_tar0->Add(h_met_ee_tar0_zjets);
   h_metsum_ee_tar0->Add(h_met_ee_tar0_ttbar);
   h_metsum_ee_tar0->Add(h_met_ee_tar0_ww);
@@ -673,6 +716,7 @@ int GetYields()
   err7_ratio_ee_tar0=err_ratio(val7_data_ee_tar0, err7_data_ee_tar0, val7_metsum_ee_tar0, err7_metsum_ee_tar0);
   err8_ratio_ee_tar0=err_ratio(val8_data_ee_tar0, err8_data_ee_tar0, val8_metsum_ee_tar0, err8_metsum_ee_tar0);
   //----------------------------------------------------------------------------------------------//
+  /*
   //--------------------------------------met mumu tar0--------------------------------------------//
   h_met_mumu_tar0_zjets->Add(h_met_emu_tar0_zjets,- Rmumu);
   h_met_mumu_tar0_ttbar->Add(h_met_emu_tar0_ttbar,- Rmumu);
@@ -764,7 +808,7 @@ int GetYields()
   err7_ratio_mumu_tar0=err_ratio(val7_data_mumu_tar0, err7_data_mumu_tar0, val7_metsum_mumu_tar0, err7_metsum_mumu_tar0);
   err8_ratio_mumu_tar0=err_ratio(val8_data_mumu_tar0, err8_data_mumu_tar0, val8_metsum_mumu_tar0, err8_metsum_mumu_tar0);
   //----------------------------------------------------------------------------------------------//
-
+  */
   //------------------------------------------met ee tar2--------------------------------------------------------------//
   h_met_ee_tar2_zjets->Add(h_met_emu_tar2_zjets,- Ree);
   h_met_ee_tar2_ttbar->Add(h_met_emu_tar2_ttbar,- Ree);
@@ -775,6 +819,26 @@ int GetYields()
   h_met_ee_tar2_ttv->Add(h_met_emu_tar2_ttv,- Ree);
   h_met_ee_tar2_vvv->Add(h_met_emu_tar2_vvv,- Ree);
   h_met_ee_tar2_data->Add(h_met_emu_tar2_data,- Ree);
+
+  h_met_mumu_tar2_zjets->Add(h_met_emu_tar2_zjets,- Rmumu);
+  h_met_mumu_tar2_ttbar->Add(h_met_emu_tar2_ttbar,- Rmumu);
+  h_met_mumu_tar2_ww->Add(h_met_emu_tar2_ww,- Rmumu);
+  h_met_mumu_tar2_wz->Add(h_met_emu_tar2_wz,- Rmumu);
+  h_met_mumu_tar2_zz->Add(h_met_emu_tar2_zz,- Rmumu);
+  h_met_mumu_tar2_singlet->Add(h_met_emu_tar2_singlet,- Rmumu);
+  h_met_mumu_tar2_ttv->Add(h_met_emu_tar2_ttv,- Rmumu);
+  h_met_mumu_tar2_vvv->Add(h_met_emu_tar2_vvv,- Rmumu);
+  h_met_mumu_tar2_data->Add(h_met_emu_tar2_data,- Rmumu);
+  //merge ee and mumu
+  h_met_ee_tar2_zjets->Add(h_met_mumu_tar2_zjets);
+  h_met_ee_tar2_ttbar->Add(h_met_mumu_tar2_ttbar);
+  h_met_ee_tar2_ww->Add(h_met_mumu_tar2_ww);
+  h_met_ee_tar2_wz->Add(h_met_mumu_tar2_wz);
+  h_met_ee_tar2_zz->Add(h_met_mumu_tar2_zz);
+  h_met_ee_tar2_singlet->Add(h_met_mumu_tar2_singlet);
+  h_met_ee_tar2_ttv->Add(h_met_mumu_tar2_ttv);
+  h_met_ee_tar2_vvv->Add(h_met_mumu_tar2_vvv);
+  h_met_ee_tar2_data->Add(h_met_mumu_tar2_data);
   
   TH1F *h_metsum_ee_tar2 = new TH1F("h_metsum_ee_tar2","Met ee tar2",350,0,350);
   h_metsum_ee_tar2->Add(h_met_ee_tar2_zjets);
@@ -856,6 +920,7 @@ int GetYields()
   err7_ratio_ee_tar2=err_ratio(val7_data_ee_tar2, err7_data_ee_tar2, val7_metsum_ee_tar2, err7_metsum_ee_tar2);
   err8_ratio_ee_tar2=err_ratio(val8_data_ee_tar2, err8_data_ee_tar2, val8_metsum_ee_tar2, err8_metsum_ee_tar2);
   //----------------------------------------------------------------------------------------------//
+  /* 
   //--------------------------------------met mumu tar2--------------------------------------------//
   h_met_mumu_tar2_zjets->Add(h_met_emu_tar2_zjets,- Rmumu);
   h_met_mumu_tar2_ttbar->Add(h_met_emu_tar2_ttbar,- Rmumu);
@@ -947,12 +1012,12 @@ int GetYields()
   err7_ratio_mumu_tar2=err_ratio(val7_data_mumu_tar2, err7_data_mumu_tar2, val7_metsum_mumu_tar2, err7_metsum_mumu_tar2);
   err8_ratio_mumu_tar2=err_ratio(val8_data_mumu_tar2, err8_data_mumu_tar2, val8_metsum_mumu_tar2, err8_metsum_mumu_tar2);
   //----------------------------------------------------------------------------------------------//
-
+  */
 
   //--------------------------------------------------------------------------------------------------------------------------------------//
-  //----------------------------------------------Met ee inc Table------------------------------------------------------------------------//
+  //----------------------------------------------Met ee+mumu inc Table-------------------------------------------------------------------//
   //--------------------------------------------------------------------------------------------------------------------------------------//
-  cout<<"\n\n"<<setw(70)<<"met ee inc"<<endl;
+  cout<<"\n\n"<<setw(70)<<"met ee+mumu inc"<<endl;
 
   cout<<"\n"<<setw(width)<<" "<<setw(width)<<"0-20 GeV"<<setw(width)<<"20-40 GeV"<<setw(width)<<"40-60 GeV"<<setw(width)<<"60-80 GeV"<<setw(width)<<"80-100 GeV"<<endl;
   //MC
@@ -973,7 +1038,7 @@ int GetYields()
    //ratio
   cout<<"\n"<<setw(width)<<"Data/MC"<<setw(width)<<Form("%.2f +/- %.2f", val6_data_ee_inc/val6_metsum_ee_inc,err6_ratio_ee_inc)<<setw(width)<<Form("%.2f +/- %.2f", val7_data_ee_inc/val7_metsum_ee_inc, err7_ratio_ee_inc)<<setw(width)<<Form("%.2f +/- %.2f", val8_data_ee_inc/val8_metsum_ee_inc,err8_ratio_ee_inc)<<endl;
   //----------------------------------------------------------------------------------------------------------------------------------------//
- 
+  /*
  //----------------------------------------------Met mumu inc Table------------------------------------------------------------------------//
   cout<<"\n\n"<<setw(70)<<"met mumu inc"<<endl;
 
@@ -995,10 +1060,10 @@ int GetYields()
    //ratio
   cout<<"\n"<<setw(width)<<"Data/MC"<<setw(width)<<Form("%.2f +/- %.2f", val6_data_mumu_inc/val6_metsum_mumu_inc,err6_ratio_mumu_inc)<<setw(width)<<Form("%.2f +/- %.2f", val7_data_mumu_inc/val7_metsum_mumu_inc, err7_ratio_mumu_inc)<<setw(width)<<Form("%.2f +/- %.2f", val8_data_mumu_inc/val8_metsum_mumu_inc,err8_ratio_mumu_inc)<<endl;
   //----------------------------------------------------------------------------------------------------------------------------------------//
+  */
+  //----------------------------------------------Met ee+mumu tar0 Table--------------------------------------------------------------------//
 
-  //----------------------------------------------Met ee tar0 Table------------------------------------------------------------------------//
-
-  cout<<"\n\n"<<setw(70)<<"met ee tar0"<<endl;
+  cout<<"\n\n"<<setw(70)<<"met ee+mumu tar0"<<endl;
 
   cout<<"\n"<<setw(width)<<" "<<setw(width)<<"0-20 GeV"<<setw(width)<<"20-40 GeV"<<setw(width)<<"40-60 GeV"<<setw(width)<<"60-80 GeV"<<setw(width)<<"80-100 GeV"<<endl;
 
@@ -1019,8 +1084,8 @@ int GetYields()
   cout<<"\n"<<setw(width)<<"Data/MC"<<setw(width)<<Form("%.2f +/- %.2f", val6_data_ee_tar0/val6_metsum_ee_tar0,err6_ratio_ee_tar0)<<setw(width)<<Form("%.2f +/- %.2f", val7_data_ee_tar0/val7_metsum_ee_tar0, err7_ratio_ee_tar0)<<setw(width)<<Form("%.2f +/- %.2f", val8_data_ee_tar0/val8_metsum_ee_tar0,err8_ratio_ee_tar0)<<endl;
  
   //----------------------------------------------------------------------------------------------------------------------------------------//
- 
- //----------------------------------------------Met mumu tar0 Table------------------------------------------------------------------------//
+  /*
+  //---------------------------------------------Met mumu tar0 Table------------------------------------------------------------------------//
   cout<<"\n\n"<<setw(70)<<"met mumu tar0"<<endl;
 
   cout<<"\n"<<setw(width)<<" "<<setw(width)<<"0-20 GeV"<<setw(width)<<"20-40 GeV"<<setw(width)<<"40-60 GeV"<<setw(width)<<"60-80 GeV"<<setw(width)<<"80-100 GeV"<<endl;
@@ -1041,10 +1106,10 @@ int GetYields()
    //ratio
   cout<<"\n"<<setw(width)<<"Data/MC"<<setw(width)<<Form("%.2f +/- %.2f", val6_data_mumu_tar0/val6_metsum_mumu_tar0,err6_ratio_mumu_tar0)<<setw(width)<<Form("%.2f +/- %.2f", val7_data_mumu_tar0/val7_metsum_mumu_tar0, err7_ratio_mumu_tar0)<<setw(width)<<Form("%.2f +/- %.2f", val8_data_mumu_tar0/val8_metsum_mumu_tar0,err8_ratio_mumu_tar0)<<endl;
   //----------------------------------------------------------------------------------------------------------------------------------------//
+  */
+  //----------------------------------------------Met ee+mumu tar2 Table------------------------------------------------------------------------//
 
-  //----------------------------------------------Met ee tar2 Table------------------------------------------------------------------------//
-
-  cout<<"\n\n"<<setw(70)<<"met ee tar2"<<endl;
+  cout<<"\n\n"<<setw(70)<<"met ee+mumu tar2"<<endl;
 
   cout<<"\n"<<setw(width)<<" "<<setw(width)<<"0-20 GeV"<<setw(width)<<"20-40 GeV"<<setw(width)<<"40-60 GeV"<<setw(width)<<"60-80 GeV"<<setw(width)<<"80-100 GeV"<<endl;
 
@@ -1065,7 +1130,7 @@ int GetYields()
   cout<<"\n"<<setw(width)<<"Data/MC"<<setw(width)<<Form("%.2f +/- %.2f", val6_data_ee_tar2/val6_metsum_ee_tar2,err6_ratio_ee_tar2)<<setw(width)<<Form("%.2f +/- %.2f", val7_data_ee_tar2/val7_metsum_ee_tar2, err7_ratio_ee_tar2)<<setw(width)<<Form("%.2f +/- %.2f", val8_data_ee_tar2/val8_metsum_ee_tar2,err8_ratio_ee_tar2)<<endl;
  
   //----------------------------------------------------------------------------------------------------------------------------------------//
- 
+  /*
  //----------------------------------------------Met mumu tar2 Table------------------------------------------------------------------------//
   cout<<"\n\n"<<setw(70)<<"met mumu tar2"<<endl;
 
@@ -1088,6 +1153,7 @@ int GetYields()
   cout<<"\n"<<setw(width)<<"Data/MC"<<setw(width)<<Form("%.2f +/- %.2f", val6_data_mumu_tar2/val6_metsum_mumu_tar2,err6_ratio_mumu_tar2)<<setw(width)<<Form("%.2f +/- %.2f", val7_data_mumu_tar2/val7_metsum_mumu_tar2, err7_ratio_mumu_tar2)<<setw(width)<<Form("%.2f +/- %.2f", val8_data_mumu_tar2/val8_metsum_mumu_tar2,err8_ratio_mumu_tar2)<<endl;
 
   //----------------------------------------------------------------------------------------------------------------------------------------//
+  */
 
   return 0;
 }

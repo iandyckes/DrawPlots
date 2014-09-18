@@ -20,10 +20,10 @@
 using namespace std;
 
 //----------Global Variables---------------//
-int mll_minbin=0;  //  Why not 50?
+int mll_minbin=0;  
 int mll_maxbin=200;
 int mll_binsize=5;
-int met_minbin=0;  //
+int met_minbin=0;  
 int met_maxbin=200;
 int met_binsize=2;
 //-----------------------------------------//
@@ -51,11 +51,11 @@ void h_format(TH1F *histo)
 	  if(name.Contains("mll"))
 		{ 
 		  histo->GetXaxis()->SetRangeUser(50,200); 
-		  histo->GetYaxis()->SetRangeUser(1e0,5e6);//1e1, 5e8
+		  histo->GetYaxis()->SetRangeUser(1e0,5e7);//1e1, 5e8
 
 		  if(name.Contains("ee"))
 			{
-			  histo->GetXaxis()->SetTitle("m_{ee} (GeV)"); 
+			  histo->GetXaxis()->SetTitle("m_{ll} (GeV)"); 
 			  histo->GetYaxis()->SetTitle("Events / 5 GeV");
 			}
 		  else if(name.Contains("mumu"))
@@ -71,7 +71,7 @@ void h_format(TH1F *histo)
 		 
 		  if(name.Contains("ee"))
 			{
-			  histo->GetXaxis()->SetTitle("met_{ee} (GeV)"); 
+			  histo->GetXaxis()->SetTitle("met_{ll} (GeV)"); 
 			  histo->GetYaxis()->SetTitle("Events / 2 GeV");
 			}
 		  else if(name.Contains("mumu"))
@@ -142,7 +142,7 @@ void overflow(TH1F *histo)
 }
 
 
-int TestDrawPlotsFSBG()
+int DrawPlotsFSBG()
 {
 
   //load histos
@@ -450,7 +450,9 @@ int TestDrawPlotsFSBG()
 	  v_met_ee_tar2[i]->Add(v_met_emu_tar2[i],-Ree);      
 	  v_met_mumu_tar2[i]->Add(v_met_emu_tar2[i],-Rmumu); 
 	}
-  
+ 
+
+
 
   //---------------------------------------Format and Overflow---------------------------------------//
 
@@ -602,6 +604,7 @@ int TestDrawPlotsFSBG()
 
   pad_h->cd();  //change pad
 
+  v_mll_ee_inc[0]->SetTitle("Inclusive ee Dilepton Mass");
   v_mll_ee_inc[0]->Draw();
 
   hs->Draw("histsame");
@@ -733,6 +736,7 @@ int TestDrawPlotsFSBG()
 
   pad_tarh->cd();  //change pad
 
+  v_mll_ee_tar[0]->SetTitle("Targeted ee Dilepton Mass");
   v_mll_ee_tar[0]->Draw();
   hstar->Draw("histsame");
  
@@ -858,6 +862,7 @@ int TestDrawPlotsFSBG()
 
   pad_h5->cd();  //change pad
 
+  v_met_ee_inc[0]->SetTitle("ee Data vs MC MET (Inclusive)");
   v_met_ee_inc[0]->Draw();
   hs_met_ee_inc->Draw("histsame");
  
@@ -983,6 +988,7 @@ int TestDrawPlotsFSBG()
 
   pad_h7->cd();  //change pad
 
+  v_met_ee_tar0[0]->SetTitle("ee Data vs MC MET (no jets)");
   v_met_ee_tar0[0]->Draw();
   hs_met_ee_tar0->Draw("histsame");
  
@@ -1107,6 +1113,7 @@ int TestDrawPlotsFSBG()
 
   pad_h9->cd();  //change pad
 
+  v_met_ee_tar2[0]->SetTitle("ee Data vs MC MET (njets>=2)");
   v_met_ee_tar2[0]->Draw();
   hs_met_ee_tar2->Draw("histsame");
  
@@ -1218,7 +1225,8 @@ int TestDrawPlotsFSBG()
 
   //-------------------------------------------------------------//
   
-  //----------------------------------------------------------------------------//
+  /*
+  //------------------------DONT MAKE SENSE ANYMORE-----------------------------//
   //-----------------------------Overlay Plots----------------------------------//
   //----------------------------------------------------------------------------//
   
@@ -1610,7 +1618,7 @@ int TestDrawPlotsFSBG()
   h_met_ee_inc_datacomp_clone->Draw();
   
   //-------------------------------------------------------------//
-
+  */
 
 
   //---------------------------------------//

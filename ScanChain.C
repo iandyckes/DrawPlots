@@ -1,8 +1,3 @@
-//  object#:   no number -> ee, 2 -> MuMu
-//
-//  e.g. h_mll_ee_inc -> histogram of ee dilepton mass
-//       h_mll_mumu_inc -> histogram of MuMu dilepton mass
-
 // Usage:
 // > root -b doAll.C
 
@@ -96,6 +91,14 @@ int ScanChain( TChain* chain, bool fast = true, int nEvents = -1, string skimFil
   h_met_emu_tar_njets2->SetDirectory(rootdir);
   h_met_emu_tar_njets2->Sumw2();
 
+  TH1F* h_nvtx_scaled= new TH1F("h_nvtx_scaled","Number of Vertices (scaled)",35,0,35);
+  h_nvtx_scaled->SetDirectory(rootdir);
+  h_nvtx_scaled->Sumw2();
+
+  TH1F* h_nvtx_unscaled= new TH1F("h_nvtx_unscaled","Number of Vertices (unscaled)",35,0,35);
+  h_nvtx_unscaled->SetDirectory(rootdir);
+  h_nvtx_unscaled->Sumw2();
+
 
   // Loop over events to Analyze
   unsigned int nEventsTotal = 0;
@@ -149,8 +152,13 @@ int ScanChain( TChain* chain, bool fast = true, int nEvents = -1, string skimFil
 	  double weight_data=1.;
 
 	  //---------------------------------------
-	  //if (zmet.lep3().Pt() > 10.){continue;}
+	  if (zmet.lep3().Pt() > 10.){continue;}
 	  //---------------------------------------
+	  //if (zmet.nvtx() > 7.) {continue;}
+	  //---------------------------------------
+	  //if (zmet.nvtx() <= 7. || zmet.nvtx() >= 20.) {continue;}
+	  //---------------------------------------
+	  //if (zmet.nvtx() < 20.) {continue;}
 
 	  //Data cuts
 	  if(zmet.isdata() && goodrun( zmet.run(), zmet.lumi() )  )
@@ -188,6 +196,11 @@ int ScanChain( TChain* chain, bool fast = true, int nEvents = -1, string skimFil
 	  //Fill  histograms
 	  if (zmet.isdata() && goodrun( zmet.run(), zmet.lumi() )  )  //If it is data from good run
 		{
+		  if (zmet.leptype()==0 || zmet.leptype()==1 || zmet.leptype()==2)
+			{
+			  h_nvtx_scaled->Fill(zmet.nvtx(),weight_data);
+			  h_nvtx_unscaled->Fill(zmet.nvtx(),weight_data);
+			}
 		  if (zmet.leptype() == 0)
 			{
 			  h_mll_ee_inc->Fill(zmet.dilmass(),weight_data);
@@ -195,6 +208,8 @@ int ScanChain( TChain* chain, bool fast = true, int nEvents = -1, string skimFil
 			  if(zmet.dilmass() > 81. && zmet.dilmass() < 101. /*&& zmet.lep3().Pt() <= 10.*/ )             //Check this.  Only apply to MET histos
 				{
 				  h_met_ee_inc->Fill(zmet.pfmet(),weight_data);
+
+				  // if(abs(zmet.pfmet() - zmet.pfmett1()) > abs(0.05*zmet.pfmet()) ) {cout<<"\n Different \n";} //Check if new is different
 				 
 				  if(zmet.njets()==0)
 					{h_met_ee_tar_njets0->Fill(zmet.pfmet(),weight_data);}
@@ -244,6 +259,12 @@ int ScanChain( TChain* chain, bool fast = true, int nEvents = -1, string skimFil
 
 	  else if (!zmet.isdata())                                  //If it is MC
 		{
+		  if (zmet.leptype()==0 || zmet.leptype()==1 || zmet.leptype()==2)
+			{
+			  h_nvtx_scaled->Fill(zmet.nvtx(), zmet.weight()*19.5*zmet.trgeff()*zmet.vtxweight() );
+			  h_nvtx_unscaled->Fill(zmet.nvtx(), zmet.weight()*19.5*zmet.trgeff() );
+			}
+
 		  if (zmet.leptype() == 0)
 			{
 			  h_mll_ee_inc->Fill(zmet.dilmass(),weight_mc);
@@ -329,6 +350,8 @@ int ScanChain( TChain* chain, bool fast = true, int nEvents = -1, string skimFil
   h_met_ee_tar_njets2->Write();
   h_met_mumu_tar_njets2->Write();
   h_met_emu_tar_njets2->Write();
+  h_nvtx_scaled->Write();
+  h_nvtx_unscaled->Write();
 
   OutputFile->Close();
 

@@ -79,7 +79,13 @@ void h_format(TH1F *histo)
 			  histo->GetXaxis()->SetTitle("met_{mumu} (GeV)"); 
 			  histo->GetYaxis()->SetTitle("Events / 2 GeV");
 			}
-
+		}
+	  else if(name.Contains("nvtx"))
+		{
+		  histo->GetXaxis()->SetRangeUser(0,35);  //350
+		  histo->GetYaxis()->SetRangeUser(0,10e6);//1e0,5e7
+		  histo->GetXaxis()->SetTitle("number of vertices"); 
+		  histo->GetYaxis()->SetTitle("Events");
 		}
 
 	}
@@ -159,6 +165,8 @@ int CorrDrawPlots3lep()
   TH1F *h_met_emu_inc_zjets = (TH1F*) InputFile->Get("h_met_emu_inc")->Clone("h_met_emu_inc_zjets");
   TH1F *h_met_emu_tar0_zjets = (TH1F*) InputFile->Get("h_met_emu_tar_njets0")->Clone("h_met_emu_tar0_zjets");
   TH1F *h_met_emu_tar2_zjets = (TH1F*) InputFile->Get("h_met_emu_tar_njets2")->Clone("h_met_emu_tar2_zjets");
+  TH1F *h_nvtx_scaled_zjets = (TH1F*) InputFile->Get("h_nvtx_scaled")->Clone("h_nvtx_scaled_zjets");
+  TH1F *h_nvtx_unscaled_zjets = (TH1F*) InputFile->Get("h_nvtx_unscaled")->Clone("h_nvtx_unscaled_zjets");
 
   TFile *InputFile_t = new TFile("singlet.root","read");
   TH1F *h_mll_ee_inc_singlet = (TH1F*) InputFile_t->Get("h_mll_ee_inc")->Clone("h_mll_ee_inc_singlet"); 
@@ -174,6 +182,8 @@ int CorrDrawPlots3lep()
   TH1F *h_met_emu_inc_singlet = (TH1F*) InputFile_t->Get("h_met_emu_inc")->Clone("h_met_emu_inc_singlet");
   TH1F *h_met_emu_tar0_singlet = (TH1F*) InputFile_t->Get("h_met_emu_tar_njets0")->Clone("h_met_emu_tar0_singlet");
   TH1F *h_met_emu_tar2_singlet = (TH1F*) InputFile_t->Get("h_met_emu_tar_njets2")->Clone("h_met_emu_tar2_singlet");
+  TH1F *h_nvtx_scaled_singlet = (TH1F*) InputFile_t->Get("h_nvtx_scaled")->Clone("h_nvtx_scaled_singlet");
+  TH1F *h_nvtx_unscaled_singlet = (TH1F*) InputFile_t->Get("h_nvtx_unscaled")->Clone("h_nvtx_unscaled_singlet");
 
   TFile *InputFile_wz = new TFile("wz.root","read");
   TH1F *h_mll_ee_inc_wz = (TH1F*) InputFile_wz->Get("h_mll_ee_inc")->Clone("h_mll_ee_inc_wz"); 
@@ -189,6 +199,8 @@ int CorrDrawPlots3lep()
   TH1F *h_met_emu_inc_wz = (TH1F*) InputFile_wz->Get("h_met_emu_inc")->Clone("h_met_emu_inc_wz");
   TH1F *h_met_emu_tar0_wz = (TH1F*) InputFile_wz->Get("h_met_emu_tar_njets0")->Clone("h_met_emu_tar0_wz");
   TH1F *h_met_emu_tar2_wz = (TH1F*) InputFile_wz->Get("h_met_emu_tar_njets2")->Clone("h_met_emu_tar2_wz");
+  TH1F *h_nvtx_scaled_wz = (TH1F*) InputFile_wz->Get("h_nvtx_scaled")->Clone("h_nvtx_scaled_wz");
+  TH1F *h_nvtx_unscaled_wz = (TH1F*) InputFile_wz->Get("h_nvtx_unscaled")->Clone("h_nvtx_unscaled_wz");
 
   TFile *InputFile_zz = new TFile("zz.root","read");
   TH1F *h_mll_ee_inc_zz = (TH1F*) InputFile_zz->Get("h_mll_ee_inc")->Clone("h_mll_ee_inc_zz"); 
@@ -204,6 +216,8 @@ int CorrDrawPlots3lep()
   TH1F *h_met_emu_inc_zz = (TH1F*) InputFile_zz->Get("h_met_emu_inc")->Clone("h_met_emu_inc_zz");
   TH1F *h_met_emu_tar0_zz = (TH1F*) InputFile_zz->Get("h_met_emu_tar_njets0")->Clone("h_met_emu_tar0_zz");
   TH1F *h_met_emu_tar2_zz = (TH1F*) InputFile_zz->Get("h_met_emu_tar_njets2")->Clone("h_met_emu_tar2_zz");
+  TH1F *h_nvtx_scaled_zz = (TH1F*) InputFile_zz->Get("h_nvtx_scaled")->Clone("h_nvtx_scaled_zz");
+  TH1F *h_nvtx_unscaled_zz = (TH1F*) InputFile_zz->Get("h_nvtx_unscaled")->Clone("h_nvtx_unscaled_zz");
 
   TFile *InputFile_ttbar = new TFile("ttbar.root","read");
   TH1F *h_mll_ee_inc_ttbar = (TH1F*) InputFile_ttbar->Get("h_mll_ee_inc")->Clone("h_mll_ee_inc_ttbar");
@@ -219,6 +233,8 @@ int CorrDrawPlots3lep()
   TH1F *h_met_emu_inc_ttbar = (TH1F*) InputFile_ttbar->Get("h_met_emu_inc")->Clone("h_met_emu_inc_ttbar");
   TH1F *h_met_emu_tar0_ttbar = (TH1F*) InputFile_ttbar->Get("h_met_emu_tar_njets0")->Clone("h_met_emu_tar0_ttbar");
   TH1F *h_met_emu_tar2_ttbar = (TH1F*) InputFile_ttbar->Get("h_met_emu_tar_njets2")->Clone("h_met_emu_tar2_ttbar");
+  TH1F *h_nvtx_scaled_ttbar = (TH1F*) InputFile_ttbar->Get("h_nvtx_scaled")->Clone("h_nvtx_scaled_ttbar");
+  TH1F *h_nvtx_unscaled_ttbar = (TH1F*) InputFile_ttbar->Get("h_nvtx_unscaled")->Clone("h_nvtx_unscaled_ttbar");
 
   TFile *InputFile_ww = new TFile("ww.root","read");
   TH1F *h_mll_ee_inc_ww = (TH1F*) InputFile_ww->Get("h_mll_ee_inc")->Clone("h_mll_ee_inc_ww");
@@ -234,6 +250,8 @@ int CorrDrawPlots3lep()
   TH1F *h_met_emu_inc_ww = (TH1F*) InputFile_ww->Get("h_met_emu_inc")->Clone("h_met_emu_inc_ww");
   TH1F *h_met_emu_tar0_ww = (TH1F*) InputFile_ww->Get("h_met_emu_tar_njets0")->Clone("h_met_emu_tar0_ww");
   TH1F *h_met_emu_tar2_ww = (TH1F*) InputFile_ww->Get("h_met_emu_tar_njets2")->Clone("h_met_emu_tar2_ww");
+  TH1F *h_nvtx_scaled_ww = (TH1F*) InputFile_ww->Get("h_nvtx_scaled")->Clone("h_nvtx_scaled_ww");
+  TH1F *h_nvtx_unscaled_ww = (TH1F*) InputFile_ww->Get("h_nvtx_unscaled")->Clone("h_nvtx_unscaled_ww");
 
   TFile *InputFile_ttv = new TFile("ttv.root","read");
   TH1F *h_mll_ee_inc_ttv = (TH1F*) InputFile_ttv->Get("h_mll_ee_inc")->Clone("h_mll_ee_inc_ttv");
@@ -249,6 +267,8 @@ int CorrDrawPlots3lep()
   TH1F *h_met_emu_inc_ttv = (TH1F*) InputFile_ttv->Get("h_met_emu_inc")->Clone("h_met_emu_inc_ttv");
   TH1F *h_met_emu_tar0_ttv = (TH1F*) InputFile_ttv->Get("h_met_emu_tar_njets0")->Clone("h_met_emu_tar0_ttv");
   TH1F *h_met_emu_tar2_ttv = (TH1F*) InputFile_ttv->Get("h_met_emu_tar_njets2")->Clone("h_met_emu_tar2_ttv");
+  TH1F *h_nvtx_scaled_ttv = (TH1F*) InputFile_ttv->Get("h_nvtx_scaled")->Clone("h_nvtx_scaled_ttv");
+  TH1F *h_nvtx_unscaled_ttv = (TH1F*) InputFile_ttv->Get("h_nvtx_unscaled")->Clone("h_nvtx_unscaled_ttv");
 
   TFile *InputFile_vvv = new TFile("vvv.root","read");
   TH1F *h_mll_ee_inc_vvv = (TH1F*) InputFile_vvv->Get("h_mll_ee_inc")->Clone("h_mll_ee_inc_vvv");
@@ -264,6 +284,8 @@ int CorrDrawPlots3lep()
   TH1F *h_met_emu_inc_vvv = (TH1F*) InputFile_vvv->Get("h_met_emu_inc")->Clone("h_met_emu_inc_vvv");
   TH1F *h_met_emu_tar0_vvv = (TH1F*) InputFile_vvv->Get("h_met_emu_tar_njets0")->Clone("h_met_emu_tar0_vvv");
   TH1F *h_met_emu_tar2_vvv = (TH1F*) InputFile_vvv->Get("h_met_emu_tar_njets2")->Clone("h_met_emu_tar2_vvv");
+  TH1F *h_nvtx_scaled_vvv = (TH1F*) InputFile_vvv->Get("h_nvtx_scaled")->Clone("h_nvtx_scaled_vvv");
+  TH1F *h_nvtx_unscaled_vvv = (TH1F*) InputFile_vvv->Get("h_nvtx_unscaled")->Clone("h_nvtx_unscaled_vvv");
 
   TFile *InputFile_data = new TFile("data.root","read");
   TH1F *h_mll_ee_inc_data = (TH1F*) InputFile_data->Get("h_mll_ee_inc")->Clone("h_mll_ee_inc_data");
@@ -279,6 +301,8 @@ int CorrDrawPlots3lep()
   TH1F *h_met_emu_inc_data = (TH1F*) InputFile_data->Get("h_met_emu_inc")->Clone("h_met_emu_inc_data");
   TH1F *h_met_emu_tar0_data = (TH1F*) InputFile_data->Get("h_met_emu_tar_njets0")->Clone("h_met_emu_tar0_data");
   TH1F *h_met_emu_tar2_data = (TH1F*) InputFile_data->Get("h_met_emu_tar_njets2")->Clone("h_met_emu_tar2_data");
+  TH1F *h_nvtx_scaled_data = (TH1F*) InputFile_data->Get("h_nvtx_scaled")->Clone("h_nvtx_scaled_data");
+  TH1F *h_nvtx_unscaled_data = (TH1F*) InputFile_data->Get("h_nvtx_unscaled")->Clone("h_nvtx_unscaled_data");
 
   //-------------------------------------------------------------------------------------------------//
 
@@ -427,6 +451,28 @@ int CorrDrawPlots3lep()
   v_met_emu_tar2.push_back(h_met_emu_tar2_ttv);
   v_met_emu_tar2.push_back(h_met_emu_tar2_vvv);
   v_met_emu_tar2.push_back(h_met_emu_tar2_data);
+
+  vector<TH1F*> v_nvtx_scaled;
+  v_nvtx_scaled.push_back(h_nvtx_scaled_zjets);
+  v_nvtx_scaled.push_back(h_nvtx_scaled_wz);
+  v_nvtx_scaled.push_back(h_nvtx_scaled_zz);
+  v_nvtx_scaled.push_back(h_nvtx_scaled_ttbar);
+  v_nvtx_scaled.push_back(h_nvtx_scaled_singlet);
+  v_nvtx_scaled.push_back(h_nvtx_scaled_ww);
+  v_nvtx_scaled.push_back(h_nvtx_scaled_ttv);
+  v_nvtx_scaled.push_back(h_nvtx_scaled_vvv);
+  v_nvtx_scaled.push_back(h_nvtx_scaled_data);
+
+  vector<TH1F*> v_nvtx_unscaled;
+  v_nvtx_unscaled.push_back(h_nvtx_unscaled_zjets);
+  v_nvtx_unscaled.push_back(h_nvtx_unscaled_wz);
+  v_nvtx_unscaled.push_back(h_nvtx_unscaled_zz);
+  v_nvtx_unscaled.push_back(h_nvtx_unscaled_ttbar);
+  v_nvtx_unscaled.push_back(h_nvtx_unscaled_singlet);
+  v_nvtx_unscaled.push_back(h_nvtx_unscaled_ww);
+  v_nvtx_unscaled.push_back(h_nvtx_unscaled_ttv);
+  v_nvtx_unscaled.push_back(h_nvtx_unscaled_vvv);
+  v_nvtx_unscaled.push_back(h_nvtx_unscaled_data);
  
 
   //-------------------------------------------------------------------------------------------------//
@@ -498,6 +544,11 @@ int CorrDrawPlots3lep()
 	  overflow(v_met_ee_tar2[i]);
 	  overflow(v_met_mumu_tar2[i]);
 	  overflow(v_met_emu_tar2[i]);
+
+	  h_format(v_nvtx_scaled[i]);
+	  h_format(v_nvtx_unscaled[i]);	  
+	  //overflow(v_nvtx_scaled[i]);   //figure this out later
+	  // overflow(v_nvtx_unscaled[i])
 	}
 
   cout<<"\n End Formatting \n"<<endl;
@@ -518,6 +569,8 @@ int CorrDrawPlots3lep()
   TH1F *h_metsum_ee_tar2 = (TH1F*) v_met_ee_tar2[0]->Clone("h_metsum_ee_tar2");
   TH1F *h_metsum_mumu_tar2 = (TH1F*) v_met_mumu_tar2[0]->Clone("h_metsum_mumu_tar2");
   TH1F *h_metsum_emu_tar2 = (TH1F*) v_met_emu_tar2[0]->Clone("h_metsum_emu_tar2");
+  TH1F *h_nvtxsum_scaled = (TH1F*) v_nvtx_scaled[0]->Clone("h_nvtxsum_scaled");
+  TH1F *h_nvtxsum_unscaled = (TH1F*) v_nvtx_unscaled[0]->Clone("h_nvtxsum_unscaled");
 
   
   for(int i=1; i < size-1; i++)    //start at 1 so skip cloned, -1 so you don't add the data.
@@ -538,9 +591,11 @@ int CorrDrawPlots3lep()
 	  h_metsum_ee_tar2->Add(v_met_ee_tar2[i]);
 	  h_metsum_mumu_tar2->Add(v_met_mumu_tar2[i]);
 	  h_metsum_emu_tar2->Add(v_met_emu_tar2[i]);
+	  h_nvtxsum_scaled->Add(v_nvtx_scaled[i]);
+	  h_nvtxsum_unscaled->Add(v_nvtx_unscaled[i]);
 	}
 
-  overflow(sum);
+  overflow(sum);  //SHOULDN'T HAVE TO DO THIS I THINK
   overflow(sum2);
   overflow(tarsum);
   overflow(tarsum2);
@@ -577,6 +632,7 @@ int CorrDrawPlots3lep()
   THStack *hs_met_ee_tar2 = new THStack("hs_met_ee_tar2","met ee tar2");
   THStack *hs_met_mumu_tar2 = new THStack("hs_met_mumu_tar2","met mumu tar2");
   THStack *hs_met_emu_tar2 = new THStack("hs_met_emu_tar2","met emu tar2");
+  //don't bother stacking nvtx
 
   //Add to Stacked Histograms
   for(int i=size-2; i >= 0; i--)  //Reverse,don't add data  >=0????????????????????????????????????????????????????
@@ -1629,21 +1685,142 @@ int CorrDrawPlots3lep()
   //-------------------------------------------------------------//
   */
 
+ //---------------------nvtx scaled------------------------------//
+  //Canvas
+  TCanvas *c17=new TCanvas("c17","Number of Vertices (Scaled)",800,800);
+  TPad *pad_h17 = new TPad("pad_h17","Histo Pad17",0., 0, 1., 0.8);
+  TPad *pad_r17 = new TPad("pad_r17","Ratio Pad17",0., 0.8, 1., 1.);
+
+  pad_h17->Draw();
+  pad_r17->Draw();
+
+  // pad_h17->SetLogy();  //c1->pad_h
+
+  pad_h17->cd();  //change pad
+  
+  h_nvtxsum_scaled->SetLineColor(kRed);
+  h_nvtxsum_scaled->SetMarkerColor(kRed);
+  h_nvtxsum_scaled->SetMarkerStyle(8);
+
+  h_nvtxsum_scaled->Draw();
+  v_nvtx_scaled[size-1]->Draw("same e1");
+
+  pad_h17->RedrawAxis();
+
+  //-------------------------------Legend---------------------------------------//
+  TLegend *leg17 = new TLegend(0.78, 0.63, 0.87, 0.89);
+  leg17->SetLineColor(kWhite);
+  leg17->SetTextFont(42); 
+  leg17->SetTextSize(0.026);
+  leg17->SetShadowColor(kWhite); 
+  leg17->SetFillColor(kWhite); 
+  leg17->AddEntry("h_nvtxsum_scaled","MC","ep");
+  leg17->AddEntry("h_nvtx_scaled_data","data","ep");
+
+  leg17->Draw();
+  //-------------------------------------------------------------//
+  //---------------------Ratio Pad-------------------------------//
+
+  pad_r17->cd();
+
+  TH1F *h_nvtx_scaled_data_clone = (TH1F*) v_nvtx_scaled[size-1]->Clone("h_nvtx_scaled_data_clone");
+
+  //  overflow(h_metsum_ee_inc);
+  
+  //Divide
+  h_nvtx_scaled_data_clone->Divide(h_nvtx_scaled_data_clone,h_nvtxsum_scaled);
+
+  h_nvtx_scaled_data_clone->GetXaxis()->SetRangeUser(0,35); 
+  h_nvtx_scaled_data_clone->GetYaxis()->SetRangeUser(0,2);
+  h_nvtx_scaled_data_clone->GetYaxis()->SetNdivisions(4);
+  h_nvtx_scaled_data_clone->GetYaxis()->SetLabelSize(.12);
+  h_nvtx_scaled_data_clone->GetYaxis()->SetTitle("data/MC");
+
+  pad_r17->SetGridy();
+
+  h_nvtx_scaled_data_clone->Draw();
+
+  //-------------------------------------------------------------//
+
+ //---------------------nvtx unscaled------------------------------//
+  //Canvas
+  TCanvas *c18=new TCanvas("c18","Number of Vertices (Unscaled)",800,800);
+  TPad *pad_h18 = new TPad("pad_h18","Histo Pad18",0., 0, 1., 0.8);
+  TPad *pad_r18 = new TPad("pad_r18","Ratio Pad18",0., 0.8, 1., 1.);
+
+  pad_h18->Draw();
+  pad_r18->Draw();
+
+  //pad_h18->SetLogy();  //c1->pad_h
+
+  pad_h18->cd();  //change pad
+  
+  h_nvtxsum_unscaled->SetLineColor(kRed);
+  h_nvtxsum_unscaled->SetMarkerColor(kRed);
+  h_nvtxsum_unscaled->SetMarkerStyle(8);
+
+  h_nvtxsum_unscaled->Draw();
+  v_nvtx_unscaled[size-1]->Draw("same e1");
+
+  pad_h18->RedrawAxis();
+
+  //-------------------------------Legend---------------------------------------//
+  TLegend *leg18 = new TLegend(0.78, 0.63, 0.87, 0.89);
+  leg18->SetLineColor(kWhite);
+  leg18->SetTextFont(42); 
+  leg18->SetTextSize(0.026);
+  leg18->SetShadowColor(kWhite); 
+  leg18->SetFillColor(kWhite); 
+  leg18->AddEntry("h_nvtxsum_unscaled","MC","ep");
+  leg18->AddEntry("h_nvtx_unscaled_data","data","ep");
+
+  leg18->Draw();
+  //-------------------------------------------------------------//
+  //---------------------Ratio Pad-------------------------------//
+
+  pad_r18->cd();
+
+  TH1F *h_nvtx_unscaled_data_clone = (TH1F*) v_nvtx_unscaled[size-1]->Clone("h_nvtx_unscaled_data_clone");
+
+  //  overflow(h_metsum_ee_inc);
+  
+  //Divide
+  h_nvtx_unscaled_data_clone->Divide(h_nvtx_unscaled_data_clone,h_nvtxsum_unscaled);
+
+  h_nvtx_unscaled_data_clone->GetXaxis()->SetRangeUser(0,35); 
+  h_nvtx_unscaled_data_clone->GetYaxis()->SetRangeUser(0,2);
+  h_nvtx_unscaled_data_clone->GetYaxis()->SetNdivisions(4);
+  h_nvtx_unscaled_data_clone->GetYaxis()->SetLabelSize(.12);
+  h_nvtx_unscaled_data_clone->GetYaxis()->SetTitle("data/MC");
+
+  pad_r18->SetGridy();
+
+  h_nvtx_unscaled_data_clone->Draw();
+
+  //-------------------------------------------------------------//
+
+
 
   //---------------------------------------//
   /*
-  c5->SaveAs("./3lep_pics/ee_inc.jpg");
-  c6->SaveAs("./3lep_pics/mumu_inc.jpg");
-  c7->SaveAs("./3lep_pics/ee_tar0.jpg");
-  c8->SaveAs("./3lep_pics/mumu_tar0.jpg");
-  c9->SaveAs("./3lep_pics/ee_tar2.jpg");
-  c10->SaveAs("./3lep_pics/mumu_tar2.jpg");
-  c11->SaveAs("./3lep_pics/ee_vs_mumu_tar0_MC.jpg");
-  c12->SaveAs("./3lep_pics/ee_vs_mumu_tar0_data.jpg");
-  c13->SaveAs("./3lep_pics/ee_vs_mumu_tar2_MC.jpg");
-  c14->SaveAs("./3lep_pics/ee_vs_mumu_tar2_data.jpg");
-  c15->SaveAs("./3lep_pics/ee_vs_mumu_inc_MC.jpg");
-  c16->SaveAs("./3lep_pics/ee_vs_mumu_inc_data.jpg");
+  c1->SaveAs("./3lep_pics/mll_inc.jpg");
+  //  c2->SaveAs("./3lep_pics/mll_mumu_inc.jpg");
+  c3->SaveAs("./3lep_pics/mll_tar.jpg");
+  //  c4->SaveAs("./3lep_pics/mll_mumu_inc.jpg");
+  c5->SaveAs("./3lep_pics/met_inc.jpg");
+  //  c6->SaveAs("./3lep_pics/mumu_inc.jpg");
+  c7->SaveAs("./3lep_pics/met_tar0.jpg");
+  //  c8->SaveAs("./3lep_pics/mumu_tar0.jpg");
+  c9->SaveAs("./3lep_pics/met_tar2.jpg");
+  //  c10->SaveAs("./3lep_pics/mumu_tar2.jpg");
+  //  c11->SaveAs("./3lep_pics/ee_vs_mumu_tar0_MC.jpg");
+  //  c12->SaveAs("./3lep_pics/ee_vs_mumu_tar0_data.jpg");
+  //  c13->SaveAs("./3lep_pics/ee_vs_mumu_tar2_MC.jpg");
+  //  c14->SaveAs("./3lep_pics/ee_vs_mumu_tar2_data.jpg");
+  //  c15->SaveAs("./3lep_pics/ee_vs_mumu_inc_MC.jpg");
+  //  c16->SaveAs("./3lep_pics/ee_vs_mumu_inc_data.jpg");   
+  c17->SaveAs("./3lep_pics/nvtx_scaled.jpg");
+  c18->SaveAs("./3lep_pics/ee_vs_mumu_inc_data.jpg");
   */
   
   return 0;
