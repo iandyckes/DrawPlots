@@ -11,12 +11,14 @@
 #include "TDirectory.h"
 #include "TFile.h"
 #include "TH1F.h"
+#include "TH2F.h"
 #include "TROOT.h"
 #include "TTreeCache.h"
 #include "TCanvas.h"
 #include "THStack.h"  
 #include "TMap.h"
 #include "TLorentzVector.h"
+#include "TMath.h"
 
 // ZMET
 #include "ZMET.h"
@@ -63,6 +65,14 @@ int ScanChain( TChain* chain, bool fast = true, int nEvents = -1, string skimFil
   h_met_mumu_inc->SetDirectory(rootdir);
   h_met_mumu_inc->Sumw2();
 
+  TH2F* h_met_ll_inc = new TH2F("h_met_ll_inc","ee+mumu MET (Inclusive)",700,-350,350,700,-350,350);//positive and negative met.  2D!
+  h_met_ll_inc->SetDirectory(rootdir);
+  h_met_ll_inc->Sumw2();
+
+  TH2F* h_met_emu2_inc = new TH2F("h_met_emu2_inc","emu MET (Inclusive)",700,-350,350,700,-350,350);//positive and negative met.  2D!
+  h_met_emu2_inc->SetDirectory(rootdir);
+  h_met_emu2_inc->Sumw2();
+
   TH1F* h_met_emu_inc = new TH1F("h_met_emu_inc","emu MET (Inclusive)",350,0,350);
   h_met_emu_inc->SetDirectory(rootdir);
   h_met_emu_inc->Sumw2();
@@ -74,6 +84,14 @@ int ScanChain( TChain* chain, bool fast = true, int nEvents = -1, string skimFil
   TH1F* h_met_mumu_tar_njets0 = new TH1F("h_met_mumu_tar_njets0","mumu MET (Targeted, no jets)",350,0,350);
   h_met_mumu_tar_njets0->SetDirectory(rootdir);
   h_met_mumu_tar_njets0->Sumw2();
+
+  TH2F* h_met_ll_tar_njets0 = new TH2F("h_met_ll_tar_njets0","ee+mumu MET (Targeted, no jets)",700,-350,350,700,-350,350);//positive and negative met.  2D!
+  h_met_ll_tar_njets0->SetDirectory(rootdir);
+  h_met_ll_tar_njets0->Sumw2();
+
+  TH2F* h_met_emu2_tar_njets0 = new TH2F("h_met_emu2_tar_njets0","emu MET (Targeted, no jets)",700,-350,350,700,-350,350);//positive and negative met.  2D!
+  h_met_emu2_tar_njets0->SetDirectory(rootdir);
+  h_met_emu2_tar_njets0->Sumw2();
 
   TH1F* h_met_emu_tar_njets0 = new TH1F("h_met_emu_tar_njets0","emu MET (Targeted, no jets)",350,0,350);
   h_met_emu_tar_njets0->SetDirectory(rootdir);
@@ -87,6 +105,14 @@ int ScanChain( TChain* chain, bool fast = true, int nEvents = -1, string skimFil
   h_met_mumu_tar_njets2->SetDirectory(rootdir);
   h_met_mumu_tar_njets2->Sumw2();
 
+  TH2F* h_met_ll_tar_njets2 = new TH2F("h_met_ll_tar_njets2","ee+mumu MET (Targeted, njets >= 2)",700,-350,350,700,-350,350);//positive and negative met.  2D!
+  h_met_ll_tar_njets2->SetDirectory(rootdir);
+  h_met_ll_tar_njets2->Sumw2();
+
+  TH2F* h_met_emu2_tar_njets2 = new TH2F("h_met_emu2_tar_njets2","emu MET (Targeted, njets >= 2)",700,-350,350,700,-350,350);//positive and negative met.  2D!
+  h_met_emu2_tar_njets2->SetDirectory(rootdir);
+  h_met_emu2_tar_njets2->Sumw2();
+
   TH1F* h_met_emu_tar_njets2 = new TH1F("h_met_emu_tar_njets2","emu MET (Targeted, njets >= 2)",350,0,350);
   h_met_emu_tar_njets2->SetDirectory(rootdir);
   h_met_emu_tar_njets2->Sumw2();
@@ -98,7 +124,6 @@ int ScanChain( TChain* chain, bool fast = true, int nEvents = -1, string skimFil
   TH1F* h_nvtx_unscaled= new TH1F("h_nvtx_unscaled","Number of Vertices (unscaled)",35,0,35);
   h_nvtx_unscaled->SetDirectory(rootdir);
   h_nvtx_unscaled->Sumw2();
-
 
   // Loop over events to Analyze
   unsigned int nEventsTotal = 0;
@@ -208,13 +233,18 @@ int ScanChain( TChain* chain, bool fast = true, int nEvents = -1, string skimFil
 			  if(zmet.dilmass() > 81. && zmet.dilmass() < 101. /*&& zmet.lep3().Pt() <= 10.*/ )             //Check this.  Only apply to MET histos
 				{
 				  h_met_ee_inc->Fill(zmet.pfmet(),weight_data);
-
-				  // if(abs(zmet.pfmet() - zmet.pfmett1()) > abs(0.05*zmet.pfmet()) ) {cout<<"\n Different \n";} //Check if new is different
+				  h_met_ll_inc->Fill(zmet.pfmet()*TMath::Cos( zmet.pfmetphi() ), zmet.pfmet()*TMath::Sin( zmet.pfmetphi() ), weight_data);
 				 
 				  if(zmet.njets()==0)
-					{h_met_ee_tar_njets0->Fill(zmet.pfmet(),weight_data);}
+					{
+					  h_met_ee_tar_njets0->Fill(zmet.pfmet(),weight_data);
+					  h_met_ll_tar_njets0->Fill(zmet.pfmet()*TMath::Cos( zmet.pfmetphi() ), zmet.pfmet()*TMath::Sin( zmet.pfmetphi() ), weight_data);
+					}
 				  else if(zmet.njets()>=2)
-					{h_met_ee_tar_njets2->Fill(zmet.pfmet(),weight_data);}
+					{
+					  h_met_ee_tar_njets2->Fill(zmet.pfmet(),weight_data);
+					  h_met_ll_tar_njets2->Fill(zmet.pfmet()*TMath::Cos( zmet.pfmetphi() ), zmet.pfmet()*TMath::Sin( zmet.pfmetphi() ), weight_data);
+					}
 				}
 
 			  if ( zmet.lep3().Pt() <= 10.  &&  zmet.njets()>=2  &&  zmet.nbcsvm()==0 && (zmet.mjj() > 70. && zmet.mjj() < 110.) )
@@ -227,11 +257,19 @@ int ScanChain( TChain* chain, bool fast = true, int nEvents = -1, string skimFil
 			  if(zmet.dilmass() > 81. && zmet.dilmass() < 101. /*&& zmet.lep3().Pt() <= 10.*/)             //check this.
 				{		  
 				  h_met_mumu_inc->Fill(zmet.pfmet(),weight_data);
+				  h_met_ll_inc->Fill(zmet.pfmet()*TMath::Cos( zmet.pfmetphi() ), zmet.pfmet()*TMath::Sin( zmet.pfmetphi() ), weight_data);
 			
 				  if(zmet.njets()==0)
-					{h_met_mumu_tar_njets0->Fill(zmet.pfmet(),weight_data);}
+					{
+					  h_met_mumu_tar_njets0->Fill(zmet.pfmet(),weight_data);
+					  h_met_ll_tar_njets0->Fill(zmet.pfmet()*TMath::Cos( zmet.pfmetphi() ), zmet.pfmet()*TMath::Sin( zmet.pfmetphi() ), weight_data);					
+					}
 				  else if(zmet.njets()>=2)
-					{h_met_mumu_tar_njets2->Fill(zmet.pfmet(),weight_data);}
+					{
+					  h_met_mumu_tar_njets2->Fill(zmet.pfmet(),weight_data);
+					  h_met_ll_tar_njets2->Fill(zmet.pfmet()*TMath::Cos( zmet.pfmetphi() ), zmet.pfmet()*TMath::Sin( zmet.pfmetphi() ), weight_data);					
+					}
+
 				}
 
 			  if ( zmet.lep3().Pt() <= 10.   &&  zmet.njets()>=2  &&  zmet.nbcsvm()==0 && (zmet.mjj() > 70. && zmet.mjj() < 110.) )  
@@ -244,11 +282,18 @@ int ScanChain( TChain* chain, bool fast = true, int nEvents = -1, string skimFil
 			  if(zmet.dilmass() > 81. && zmet.dilmass() < 101. /*&& zmet.lep3().Pt() <= 10.*/)             //check this.
 				{		  
 				  h_met_emu_inc->Fill(zmet.pfmet(),weight_data);
+				  h_met_emu2_inc->Fill(zmet.pfmet()*TMath::Cos( zmet.pfmetphi() ), zmet.pfmet()*TMath::Sin( zmet.pfmetphi() ), weight_data);
 			
 				  if(zmet.njets()==0)
-					{h_met_emu_tar_njets0->Fill(zmet.pfmet(),weight_data);}
+					{
+					  h_met_emu_tar_njets0->Fill(zmet.pfmet(),weight_data);
+					  h_met_emu2_tar_njets0->Fill(zmet.pfmet()*TMath::Cos( zmet.pfmetphi() ), zmet.pfmet()*TMath::Sin( zmet.pfmetphi() ), weight_data);
+					}
 				  else if(zmet.njets()>=2)
-					{h_met_emu_tar_njets2->Fill(zmet.pfmet(),weight_data);}
+					{
+					  h_met_emu_tar_njets2->Fill(zmet.pfmet(),weight_data);
+					  h_met_emu2_tar_njets2->Fill(zmet.pfmet()*TMath::Cos( zmet.pfmetphi() ), zmet.pfmet()*TMath::Sin( zmet.pfmetphi() ), weight_data);
+					}
 				}
 
 			  // if ( zmet.lep3().Pt() <= 10.   &&  zmet.njets()>=2  &&  zmet.nbcsvm()==0 && (zmet.mjj() > 70. && zmet.mjj() < 110.) )  
@@ -272,11 +317,18 @@ int ScanChain( TChain* chain, bool fast = true, int nEvents = -1, string skimFil
 			  if(zmet.dilmass() > 81. && zmet.dilmass() < 101. /* && zmet.lep3().Pt() <= 10.*/)
 				{
 				  h_met_ee_inc->Fill(zmet.pfmet(),weight_mc);
+				  h_met_ll_inc->Fill(zmet.pfmet()*TMath::Cos( zmet.pfmetphi() ), zmet.pfmet()*TMath::Sin( zmet.pfmetphi() ), weight_mc);					
 				
 				  if(zmet.njets()==0)
-					{h_met_ee_tar_njets0->Fill(zmet.pfmet(),weight_mc);}
+					{
+					  h_met_ee_tar_njets0->Fill(zmet.pfmet(),weight_mc);
+					  h_met_ll_tar_njets0->Fill(zmet.pfmet()*TMath::Cos( zmet.pfmetphi() ), zmet.pfmet()*TMath::Sin( zmet.pfmetphi() ), weight_mc);
+					}
 				  else if(zmet.njets()>=2)
-					{h_met_ee_tar_njets2->Fill(zmet.pfmet(),weight_mc);}
+					{
+					  h_met_ee_tar_njets2->Fill(zmet.pfmet(),weight_mc);
+					  h_met_ll_tar_njets2->Fill(zmet.pfmet()*TMath::Cos( zmet.pfmetphi() ), zmet.pfmet()*TMath::Sin( zmet.pfmetphi() ), weight_mc);
+					}
 				}
 			  if (zmet.lep3().Pt() <= 10.  &&  zmet.njets()>=2  &&  zmet.nbcsvm()==0 && (zmet.mjj() > 70. && zmet.mjj() < 110.) )        
    				{h_mll_ee_tar->Fill(zmet.dilmass(),weight_mc);}
@@ -288,11 +340,18 @@ int ScanChain( TChain* chain, bool fast = true, int nEvents = -1, string skimFil
 			  if(zmet.dilmass() > 81. && zmet.dilmass() < 101. /* && zmet.lep3().Pt() <= 10.*/)
 				{
 				  h_met_mumu_inc->Fill(zmet.pfmet(),weight_mc);
-				
+				  h_met_ll_inc->Fill(zmet.pfmet()*TMath::Cos( zmet.pfmetphi() ), zmet.pfmet()*TMath::Sin( zmet.pfmetphi() ), weight_mc);
+
 				  if(zmet.njets()==0)
-					{h_met_mumu_tar_njets0->Fill(zmet.pfmet(),weight_mc);}
+					{
+					  h_met_mumu_tar_njets0->Fill(zmet.pfmet(),weight_mc);
+					  h_met_ll_tar_njets0->Fill(zmet.pfmet()*TMath::Cos( zmet.pfmetphi() ), zmet.pfmet()*TMath::Sin( zmet.pfmetphi() ), weight_mc);
+					}
 				  else if(zmet.njets()>=2)
-					{h_met_mumu_tar_njets2->Fill(zmet.pfmet(),weight_mc);}
+					{
+					  h_met_mumu_tar_njets2->Fill(zmet.pfmet(),weight_mc);
+					  h_met_ll_tar_njets2->Fill(zmet.pfmet()*TMath::Cos( zmet.pfmetphi() ), zmet.pfmet()*TMath::Sin( zmet.pfmetphi() ), weight_mc);
+					}
 				}
 
 			  if (zmet.lep3().Pt() <= 10.  &&  zmet.njets()>=2  &&  zmet.nbcsvm()==0 && (zmet.mjj() > 70. && zmet.mjj() < 110.) )
@@ -306,11 +365,18 @@ int ScanChain( TChain* chain, bool fast = true, int nEvents = -1, string skimFil
 			  if(zmet.dilmass() > 81. && zmet.dilmass() < 101. /* && zmet.lep3().Pt() <= 10.*/)
 				{
 				  h_met_emu_inc->Fill(zmet.pfmet(),weight_mc);
-				
+				  h_met_emu2_inc->Fill(zmet.pfmet()*TMath::Cos( zmet.pfmetphi() ), zmet.pfmet()*TMath::Sin( zmet.pfmetphi() ), weight_mc);
+
 				  if(zmet.njets()==0)
-					{h_met_emu_tar_njets0->Fill(zmet.pfmet(),weight_mc);}
+					{
+					  h_met_emu_tar_njets0->Fill(zmet.pfmet(),weight_mc);
+					  h_met_emu2_tar_njets0->Fill(zmet.pfmet()*TMath::Cos( zmet.pfmetphi() ), zmet.pfmet()*TMath::Sin( zmet.pfmetphi() ), weight_mc);
+					}
 				  else if(zmet.njets()>=2)
-					{h_met_emu_tar_njets2->Fill(zmet.pfmet(),weight_mc);}
+					{
+					  h_met_emu_tar_njets2->Fill(zmet.pfmet(),weight_mc);
+					  h_met_emu2_tar_njets2->Fill(zmet.pfmet()*TMath::Cos( zmet.pfmetphi() ), zmet.pfmet()*TMath::Sin( zmet.pfmetphi() ), weight_mc);
+					}
 				}
 
 			  // if (zmet.lep3().Pt() <= 10.  &&  zmet.njets()>=2  &&  zmet.nbcsvm()==0 && (zmet.mjj() > 70. && zmet.mjj() < 110.) )
@@ -343,15 +409,23 @@ int ScanChain( TChain* chain, bool fast = true, int nEvents = -1, string skimFil
   h_mll_mumu_tar->Write();
   h_met_ee_inc->Write();
   h_met_mumu_inc->Write();
+  h_met_ll_inc->Write();
   h_met_emu_inc->Write();
+  h_met_emu2_inc->Write();
   h_met_ee_tar_njets0->Write();
   h_met_mumu_tar_njets0->Write();
+  h_met_ll_tar_njets0->Write();
   h_met_emu_tar_njets0->Write();
+  h_met_emu2_tar_njets0->Write();
   h_met_ee_tar_njets2->Write();
   h_met_mumu_tar_njets2->Write();
+  h_met_ll_tar_njets2->Write();
   h_met_emu_tar_njets2->Write();
+  h_met_emu2_tar_njets2->Write();
   h_nvtx_scaled->Write();
   h_nvtx_unscaled->Write();
+
+
 
   OutputFile->Close();
 
