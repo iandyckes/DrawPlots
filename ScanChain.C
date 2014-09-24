@@ -125,6 +125,13 @@ int ScanChain( TChain* chain, bool fast = true, int nEvents = -1, string skimFil
   h_nvtx_unscaled->SetDirectory(rootdir);
   h_nvtx_unscaled->Sumw2();
 
+  TH1F* h_phi= new TH1F("h_phi","phi distribution",40,-TMath::Pi(),TMath::Pi());
+  h_phi->SetDirectory(rootdir);
+  h_phi->Sumw2();
+
+  TFile *InputFile = new TFile("phiRatio.root","read");
+  TH1F *h_phi_ratio = (TH1F*) InputFile->Get("h_phidata_clone_scaled")->Clone("h_phi_ratio");
+
   // Loop over events to Analyze
   unsigned int nEventsTotal = 0;
   unsigned int nEventsChain = chain->GetEntries();
@@ -173,9 +180,10 @@ int ScanChain( TChain* chain, bool fast = true, int nEvents = -1, string skimFil
 	  if( ( abs( zmet.lep1().Eta()) > 1.4 && abs( zmet.lep1().Eta()) < 1.6) || ( abs( zmet.lep2().Eta()) > 1.4 && abs( zmet.lep2().Eta()) < 1.6) ) 
 		{continue;}
 
-	  double weight_mc=zmet.weight()*19.5*zmet.trgeff()*zmet.vtxweight();
+	  double weight_mc=zmet.weight()*19.5*zmet.trgeff()*zmet.vtxweight()*( h_phi_ratio->GetBinContent(h_phi_ratio->FindBin(zmet.pfmetphi())) );
 	  double weight_data=1.;
-
+	  //cout<< h_phi_ratio->GetBinContent(h_phi_ratio->FindBin(zmet.pfmetphi()))<<endl;
+	  
 	  //---------------------------------------
 	  if (zmet.lep3().Pt() > 10.){continue;}
 	  //---------------------------------------
@@ -225,6 +233,7 @@ int ScanChain( TChain* chain, bool fast = true, int nEvents = -1, string skimFil
 			{
 			  h_nvtx_scaled->Fill(zmet.nvtx(),weight_data);
 			  h_nvtx_unscaled->Fill(zmet.nvtx(),weight_data);
+			  h_phi->Fill(zmet.pfmetphi(), weight_data);
 			}
 		  if (zmet.leptype() == 0)
 			{
@@ -302,13 +311,13 @@ int ScanChain( TChain* chain, bool fast = true, int nEvents = -1, string skimFil
 		}
 
 
-	  else if (!zmet.isdata())                                  //If it is MC
+	  else if (!zmet.isdata())   //If it is MC
 		{
 		  if (zmet.leptype()==0 || zmet.leptype()==1 || zmet.leptype()==2)
 			{
 			  h_nvtx_scaled->Fill(zmet.nvtx(), zmet.weight()*19.5*zmet.trgeff()*zmet.vtxweight() );
 			  h_nvtx_unscaled->Fill(zmet.nvtx(), zmet.weight()*19.5*zmet.trgeff() );
-			}
+			  h_phi->Fill(zmet.pfmetphi(), weight_mc);			}
 
 		  if (zmet.leptype() == 0)
 			{
@@ -424,7 +433,7 @@ int ScanChain( TChain* chain, bool fast = true, int nEvents = -1, string skimFil
   h_met_emu2_tar_njets2->Write();
   h_nvtx_scaled->Write();
   h_nvtx_unscaled->Write();
-
+  h_phi->Write();
 
 
   OutputFile->Close();

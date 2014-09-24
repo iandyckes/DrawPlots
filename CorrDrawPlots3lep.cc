@@ -5,6 +5,7 @@
 
 #include <vector>
 #include <iostream>
+#include <iomanip>
 #include <stdexcept>
 
 #include "TFile.h"
@@ -18,6 +19,9 @@
 #include "TPad.h"
 #include "TStyle.h"
 #include "TString.h"
+#include "TMath.h"
+#include "TFitResultPtr.h"
+#include "TMatrixDSym.h"
 
 using namespace std;
 
@@ -28,6 +32,7 @@ int mll_binsize=5;
 int met_minbin=0;  //
 int met_maxbin=200;
 int met_binsize=2;
+int corecutoff=60;
 //-----------------------------------------//
 
 
@@ -123,16 +128,7 @@ void h_format(TH1F *histo)
  
 }
 
-/*
-void overflow(TH1F *histo)
-{
-  double uncertainty=0.;
 
-  histo->SetBinContent(histo->GetNbinsX(),histo->GetBinContent(histo->GetNbinsX())+histo->IntegralAndError(histo->GetNbinsX(),-1,uncertainty));
-
-  histo->SetBinError((histo->GetNbinsX()),sqrt(pow(histo->GetBinError((histo->GetNbinsX())),2) + pow(uncertainty,2)));
-}
-*/
 void overflow(TH1F *histo)
 {
   double uncertainty=0.;
@@ -149,32 +145,136 @@ void overflow(TH1F *histo)
   histo->SetBinError(overflowbin,sqrt(pow(histo->GetBinError((overflowbin)),2) + pow(uncertainty,2)));
 }
 
+
+void tails(TH1D *histo)
+{
+  int min=histo->FindBin(-corecutoff);
+  int max=histo->FindBin(corecutoff);
+  for(int i = min; i<= max; i++)
+	{
+	  histo->SetBinContent(i,0.);
+	  histo->SetBinError(i,0.);
+	}
+}
+
+void core(TH1D *histo)
+{
+  int min=histo->FindBin(-corecutoff);
+  int max=histo->FindBin(corecutoff);
+  int last=histo->GetNbinsX();
+  for(int i = 1; i< min; i++)
+	{
+	  histo->SetBinContent(i,0.);
+	  histo->SetBinError(i,0.);
+	}
+  for(int i = max + 1; i<= last ; i++)
+	{
+	  histo->SetBinContent(i,0.);
+	  histo->SetBinError(i,0.);
+	}
+}
+
+
+/*
 double fitf(double *v, double *par)
 {
   double arg = 0;
+
   if (par[2] != 0)
-	{arg = (v[0]-par[1])/par[2];}
+	{
+	  arg = (v[0]-par[1])/par[2];;
+	}
 
   double fitval = par[0]*exp(-0.5*arg*arg);
 
   return fitval;
-
 }
 
 void fit(TH1D *histo)
 {
-  double *par[3];
-  double *x;
-  double *var[1]={x};
   
-  //  TF1 *myfit = new TF1("myfit", "[0]*exp(-pow( (x-[1]), 2) / (2*pow( [2]/2.35482, 2)  ))",-200,200 );
-  //  TF1 *myfit = new TF1("myfit", "par[0]*TMath::Gaus(var[0],par[1],par[2]) ",-50,50,3);
-  TF1 *func = new TF1("fit", fitf,-50,50,3);  
+  TF1 *func = new TF1("func", fitf,-350,350,3);  //func-fit
   func->SetParameters(histo->GetMaximum(), histo->GetMean(), histo->GetRMS());
   func->SetParNames("Constant","Mean_value", "RMS_width");
+  func->SetLineColor(kBlack);
+  histo->Fit("func","0RS");//"0"  func->fit
 
-  histo->Fit("fit","0");
+  cout<<"\nChi-square = "<<func->GetChisquare()<<",    Prob = "<<func->GetProb()<<endl;
+
+  func->DrawClone("Same");
 }
+*/
+
+void betterfit(TH1D *histo)
+{
+  TFitResultPtr fit_data = (TFitResultPtr) histo->Fit("gaus","0S");
+  TF1 *fit_func = (TF1*) histo->GetFunction("gaus");
+  int npar=3;
+  cout<<"\nChisquare = "<<fit_func->GetChisquare()<<endl;
+}
+
+using std::pair;
+pair <double, double> getweightedavg(double x, double dx, double y, double dy)
+{
+  double val = (x/pow(dx,2)+y/pow(dy,2))/(1/pow(dx,2)+1/pow(dy,2));
+  double err = 1/sqrt(1/pow(dx,2)+1/pow(dy,2));
+  return make_pair(val, err);
+}
+
+void sumparameters(TH1D *core, TH1D *tails)
+{
+  TF1 *coref = (TF1*) core->GetFunction("gaus");
+  TF1 *tailsf = (TF1*) tails->GetFunction("gaus");
+  pair<double, double> constant = getweightedavg( coref->GetParameter(0),coref->GetParError(0),tailsf->GetParameter(0), tailsf->GetParError(0));
+  pair<double, double> mean  = getweightedavg( coref->GetParameter(1),coref->GetParError(1),tailsf->GetParameter(1), tailsf->GetParError(1));
+  pair<double, double> sigma = getweightedavg( coref->GetParameter(2),coref->GetParError(2),tailsf->GetParameter(2), tailsf->GetParError(2));
+
+  int w=11;
+  cout<<setw(30)<<"\nWeighted Sum Parameters"<<endl;
+  cout<<scientific<<setw(w)<<"\nConstant = "<<setw(w)<<constant.first<<" +- "<<constant.second<<endl;
+  cout<<scientific<<setw(w)<<"Mean = "<<setw(w)<<mean.first<<" +- "<<mean.second<<endl;
+  cout<<scientific<<setw(w)<<"Sigma = "<<setw(w)<<sigma.first<<" +- "<<sigma.second<<endl;
+
+  TF1 *sum = new TF1("sum","[0]*exp(-0.5*pow( (x-[1])/[2] ,2))",-350,350);
+  sum->SetParameter(0, constant.first);
+  sum->SetParameter(1, mean.first);
+  sum->SetParameter(2, sigma.first);
+  sum->SetLineColor(kBlack);
+  sum->Draw("same");
+}
+
+void all_fitting(TH1D *histo)
+{
+  TH1D *histo_core = (TH1D*) histo->Clone("histo_core");
+  core(histo_core);
+  TH1D *histo_tails = (TH1D*) histo->Clone("histo_tails");
+  tails(histo_tails);
+
+  TString name=histo->GetName();
+
+  cout<<"\n"<<setw(50)<<name<<endl;
+  betterfit(histo);
+
+  cout<<"\nCore"<<endl;
+  betterfit(histo_core);
+
+  cout<<"\nTails"<<endl;
+  betterfit(histo_tails);
+
+  sumparameters(histo_core, histo_tails);
+
+  //Save to root file.  Change name depending on name of histogram passed to function
+  TFile *OutputFile = new TFile(name + ".root","recreate");
+  OutputFile->cd();
+  histo->Write();
+  histo_core->Write();
+  histo_tails->Write();
+  OutputFile->Close();
+}
+
+//----------------------------------------------------------------------------------------------------------//
+//----------------------------------------------------------------------------------------------------------//
+//----------------------------------------------------------------------------------------------------------//
 
 int CorrDrawPlots3lep()
 {
@@ -202,6 +302,7 @@ int CorrDrawPlots3lep()
   TH2F *h_met_emu2_inc_zjets = (TH2F*) InputFile->Get("h_met_emu2_inc")->Clone("h_met_emu2_inc_zjets");
   TH2F *h_met_emu2_tar0_zjets = (TH2F*) InputFile->Get("h_met_emu2_tar_njets0")->Clone("h_met_emu2_tar0_zjets");
   TH2F *h_met_emu2_tar2_zjets = (TH2F*) InputFile->Get("h_met_emu2_tar_njets2")->Clone("h_met_emu2_tar2_zjets");
+  TH1F *h_phi_zjets = (TH1F*) InputFile->Get("h_phi")->Clone("h_phi_zjets");
 
   TFile *InputFile_t = new TFile("singlet.root","read");
   TH1F *h_mll_ee_inc_singlet = (TH1F*) InputFile_t->Get("h_mll_ee_inc")->Clone("h_mll_ee_inc_singlet"); 
@@ -225,6 +326,7 @@ int CorrDrawPlots3lep()
   TH2F *h_met_emu2_inc_singlet = (TH2F*) InputFile_t->Get("h_met_emu2_inc")->Clone("h_met_emu2_inc_singlet");
   TH2F *h_met_emu2_tar0_singlet = (TH2F*) InputFile_t->Get("h_met_emu2_tar_njets0")->Clone("h_met_emu2_tar0_singlet");
   TH2F *h_met_emu2_tar2_singlet = (TH2F*) InputFile_t->Get("h_met_emu2_tar_njets2")->Clone("h_met_emu2_tar2_singlet");
+  TH1F *h_phi_singlet = (TH1F*) InputFile_t->Get("h_phi")->Clone("h_phi_singlet");
 
   TFile *InputFile_wz = new TFile("wz.root","read");
   TH1F *h_mll_ee_inc_wz = (TH1F*) InputFile_wz->Get("h_mll_ee_inc")->Clone("h_mll_ee_inc_wz"); 
@@ -248,6 +350,7 @@ int CorrDrawPlots3lep()
   TH2F *h_met_emu2_inc_wz = (TH2F*) InputFile_wz->Get("h_met_emu2_inc")->Clone("h_met_emu2_inc_wz");
   TH2F *h_met_emu2_tar0_wz = (TH2F*) InputFile_wz->Get("h_met_emu2_tar_njets0")->Clone("h_met_emu2_tar0_wz");
   TH2F *h_met_emu2_tar2_wz = (TH2F*) InputFile_wz->Get("h_met_emu2_tar_njets2")->Clone("h_met_emu2_tar2_wz");
+  TH1F *h_phi_wz = (TH1F*) InputFile_wz->Get("h_phi")->Clone("h_phi_wz");
 
   TFile *InputFile_zz = new TFile("zz.root","read");
   TH1F *h_mll_ee_inc_zz = (TH1F*) InputFile_zz->Get("h_mll_ee_inc")->Clone("h_mll_ee_inc_zz"); 
@@ -271,6 +374,7 @@ int CorrDrawPlots3lep()
   TH2F *h_met_emu2_inc_zz = (TH2F*) InputFile_zz->Get("h_met_emu2_inc")->Clone("h_met_emu2_inc_zz");
   TH2F *h_met_emu2_tar0_zz = (TH2F*) InputFile_zz->Get("h_met_emu2_tar_njets0")->Clone("h_met_emu2_tar0_zz");
   TH2F *h_met_emu2_tar2_zz = (TH2F*) InputFile_zz->Get("h_met_emu2_tar_njets2")->Clone("h_met_emu2_tar2_zz");
+  TH1F *h_phi_zz = (TH1F*) InputFile_zz->Get("h_phi")->Clone("h_phi_zz");
 
   TFile *InputFile_ttbar = new TFile("ttbar.root","read");
   TH1F *h_mll_ee_inc_ttbar = (TH1F*) InputFile_ttbar->Get("h_mll_ee_inc")->Clone("h_mll_ee_inc_ttbar");
@@ -294,6 +398,7 @@ int CorrDrawPlots3lep()
   TH2F *h_met_emu2_inc_ttbar = (TH2F*) InputFile_ttbar->Get("h_met_emu2_inc")->Clone("h_met_emu2_inc_ttbar");
   TH2F *h_met_emu2_tar0_ttbar = (TH2F*) InputFile_ttbar->Get("h_met_emu2_tar_njets0")->Clone("h_met_emu2_tar0_ttbar");
   TH2F *h_met_emu2_tar2_ttbar = (TH2F*) InputFile_ttbar->Get("h_met_emu2_tar_njets2")->Clone("h_met_emu2_tar2_ttbar");
+  TH1F *h_phi_ttbar = (TH1F*) InputFile_ttbar->Get("h_phi")->Clone("h_phi_ttbar");
 
   TFile *InputFile_ww = new TFile("ww.root","read");
   TH1F *h_mll_ee_inc_ww = (TH1F*) InputFile_ww->Get("h_mll_ee_inc")->Clone("h_mll_ee_inc_ww");
@@ -317,6 +422,7 @@ int CorrDrawPlots3lep()
   TH2F *h_met_emu2_inc_ww = (TH2F*) InputFile_ww->Get("h_met_emu2_inc")->Clone("h_met_emu2_inc_ww");
   TH2F *h_met_emu2_tar0_ww = (TH2F*) InputFile_ww->Get("h_met_emu2_tar_njets0")->Clone("h_met_emu2_tar0_ww");
   TH2F *h_met_emu2_tar2_ww = (TH2F*) InputFile_ww->Get("h_met_emu2_tar_njets2")->Clone("h_met_emu2_tar2_ww");
+  TH1F *h_phi_ww = (TH1F*) InputFile_ww->Get("h_phi")->Clone("h_phi_ww");
 
   TFile *InputFile_ttv = new TFile("ttv.root","read");
   TH1F *h_mll_ee_inc_ttv = (TH1F*) InputFile_ttv->Get("h_mll_ee_inc")->Clone("h_mll_ee_inc_ttv");
@@ -340,6 +446,7 @@ int CorrDrawPlots3lep()
   TH2F *h_met_emu2_inc_ttv = (TH2F*) InputFile_ttv->Get("h_met_emu2_inc")->Clone("h_met_emu2_inc_ttv");
   TH2F *h_met_emu2_tar0_ttv = (TH2F*) InputFile_ttv->Get("h_met_emu2_tar_njets0")->Clone("h_met_emu2_tar0_ttv");
   TH2F *h_met_emu2_tar2_ttv = (TH2F*) InputFile_ttv->Get("h_met_emu2_tar_njets2")->Clone("h_met_emu2_tar2_ttv");
+  TH1F *h_phi_ttv = (TH1F*) InputFile_ttv->Get("h_phi")->Clone("h_phi_ttv");
 
   TFile *InputFile_vvv = new TFile("vvv.root","read");
   TH1F *h_mll_ee_inc_vvv = (TH1F*) InputFile_vvv->Get("h_mll_ee_inc")->Clone("h_mll_ee_inc_vvv");
@@ -363,6 +470,7 @@ int CorrDrawPlots3lep()
   TH2F *h_met_emu2_inc_vvv = (TH2F*) InputFile_vvv->Get("h_met_emu2_inc")->Clone("h_met_emu2_inc_vvv");
   TH2F *h_met_emu2_tar0_vvv = (TH2F*) InputFile_vvv->Get("h_met_emu2_tar_njets0")->Clone("h_met_emu2_tar0_vvv");
   TH2F *h_met_emu2_tar2_vvv = (TH2F*) InputFile_vvv->Get("h_met_emu2_tar_njets2")->Clone("h_met_emu2_tar2_vvv");
+  TH1F *h_phi_vvv = (TH1F*) InputFile_vvv->Get("h_phi")->Clone("h_phi_vvv");
 
   TFile *InputFile_data = new TFile("data.root","read");
   TH1F *h_mll_ee_inc_data = (TH1F*) InputFile_data->Get("h_mll_ee_inc")->Clone("h_mll_ee_inc_data");
@@ -386,6 +494,7 @@ int CorrDrawPlots3lep()
   TH2F *h_met_emu2_inc_data = (TH2F*) InputFile_data->Get("h_met_emu2_inc")->Clone("h_met_emu2_inc_data");
   TH2F *h_met_emu2_tar0_data = (TH2F*) InputFile_data->Get("h_met_emu2_tar_njets0")->Clone("h_met_emu2_tar0_data");
   TH2F *h_met_emu2_tar2_data = (TH2F*) InputFile_data->Get("h_met_emu2_tar_njets2")->Clone("h_met_emu2_tar2_data");
+  TH1F *h_phi_data = (TH1F*) InputFile_data->Get("h_phi")->Clone("h_phi_data");
 
   //-------------------------------------------------------------------------------------------------//
 
@@ -622,7 +731,16 @@ int CorrDrawPlots3lep()
   v_nvtx_unscaled.push_back(h_nvtx_unscaled_vvv);
   v_nvtx_unscaled.push_back(h_nvtx_unscaled_data);
  
-
+  vector<TH1F*> v_phi;
+  v_phi.push_back(h_phi_zjets);
+  v_phi.push_back(h_phi_wz);
+  v_phi.push_back(h_phi_zz);
+  v_phi.push_back(h_phi_ttbar);
+  v_phi.push_back(h_phi_singlet);
+  v_phi.push_back(h_phi_ww);
+  v_phi.push_back(h_phi_ttv);
+  v_phi.push_back(h_phi_vvv);
+  v_phi.push_back(h_phi_data);
   //------------------------------------FSBG-------------------------------------------------------------//
 
   //loop through ee and mumu and subract eu*R.  Before formatting, overflow, summing, and stacking
@@ -724,6 +842,7 @@ int CorrDrawPlots3lep()
   TH1F *h_metsum_emu_tar2 = (TH1F*) v_met_emu_tar2[0]->Clone("h_metsum_emu_tar2");
   TH1F *h_nvtxsum_scaled = (TH1F*) v_nvtx_scaled[0]->Clone("h_nvtxsum_scaled");
   TH1F *h_nvtxsum_unscaled = (TH1F*) v_nvtx_unscaled[0]->Clone("h_nvtxsum_unscaled");
+  TH1F *h_phisum = (TH1F*) v_phi[0]->Clone("h_phisum");
   
   for(int i=1; i < size-1; i++)    //start at 1 so skip cloned, -1 so you don't add the data.
 	{
@@ -748,6 +867,7 @@ int CorrDrawPlots3lep()
 	  h_metsum_emu_tar2->Add(v_met_emu_tar2[i]);
 	  h_nvtxsum_scaled->Add(v_nvtx_scaled[i]);
 	  h_nvtxsum_unscaled->Add(v_nvtx_unscaled[i]);
+	  h_phisum->Add(v_phi[i]);	  
 	}
 
   cout<<"\n End Summing \n"<<endl;
@@ -756,6 +876,7 @@ int CorrDrawPlots3lep()
 
   //Get rid of stat box
   gStyle->SetOptStat(0);
+  // gStyle->SetOptFit(1111);
   //-----------------------
   //-----------------------------Split up X and Y---------------------------------------------//
   TH1D *h_metsum_llx_inc = h_metsum_ll_inc->ProjectionX("h_metsum_llx_inc",0,-1,"e");
@@ -789,7 +910,7 @@ int CorrDrawPlots3lep()
   THStack *hs_met_ee_tar2 = new THStack("hs_met_ee_tar2","met ee tar2");
   THStack *hs_met_mumu_tar2 = new THStack("hs_met_mumu_tar2","met mumu tar2");
   THStack *hs_met_emu_tar2 = new THStack("hs_met_emu_tar2","met emu tar2");
-  //don't bother stacking nvtx, or METx,METy yet
+  //don't bother stacking nvtx, or METx,METy yet, or phi
 
   //Add to Stacked Histograms
   for(int i=size-2; i >= 0; i--)  //Reverse,don't add data  >=0????????????????????????????????????????????????????
@@ -808,7 +929,7 @@ int CorrDrawPlots3lep()
 	  hs_met_mumu_tar2->Add(v_met_mumu_tar2[i]);
 	  hs_met_emu_tar2->Add(v_met_emu_tar2[i]);
 	}
-  
+    
   //-----------------------------------------------------------------------------------//
   //----------------------------------Drawing------------------------------------------//
   //-----------------------------------------------------------------------------------//  
@@ -1073,6 +1194,7 @@ int CorrDrawPlots3lep()
 
   //-------------------------------------------------------------//
   */
+  
   //---------------------MET ee INC------------------------------//
   //Canvas
   TCanvas *c5=new TCanvas("c5","Met ee inc",800,800);
@@ -1136,6 +1258,7 @@ int CorrDrawPlots3lep()
   h_met_ee_inc_data_clone->Draw();
 
   //-------------------------------------------------------------//
+   
   /*  
   //---------------------MET MuMu INC----------------------------//
   //Canvas
@@ -1198,7 +1321,8 @@ int CorrDrawPlots3lep()
   h_met_mumu_inc_data_clone->Draw();
 
   //-------------------------------------------------------------//
-  */  
+  */
+  
   //---------------------MET ee Tar0-----------------------------//
   //Canvas
   TCanvas *c7=new TCanvas("c7","Met ee tar0",800,800);
@@ -1261,6 +1385,7 @@ int CorrDrawPlots3lep()
   h_met_ee_tar0_data_clone->Draw();
 
   //-------------------------------------------------------------//
+  
   /*
   //---------------------MET MuMu Tar0---------------------------//
   //Canvas
@@ -1323,7 +1448,8 @@ int CorrDrawPlots3lep()
   h_met_mumu_tar0_data_clone->Draw();
 
   //-------------------------------------------------------------//
-  */  
+  */
+    
   //---------------------MET ee Tar2------------------------------//
   //Canvas
   TCanvas *c9=new TCanvas("c9","Met ee tar2",800,800);
@@ -1386,6 +1512,7 @@ int CorrDrawPlots3lep()
   h_met_ee_tar2_data_clone->Draw();
 
   //-------------------------------------------------------------//
+  
   /*
   //---------------------MET MuMu Tar2------------------------------//
   //Canvas
@@ -1958,6 +2085,7 @@ int CorrDrawPlots3lep()
 
   //-------------------------------------------------------------//
   */
+  /*  
   //-----------------------X vs Y MC MET INC-----------------------------//
   //Canvas
   TCanvas *c19=new TCanvas("c19","X vs Y MC Inclusive MET",800,800);
@@ -1980,21 +2108,26 @@ int CorrDrawPlots3lep()
   h_metsum_lly_inc->SetMarkerColor(kBlue);
   h_metsum_lly_inc->SetMarkerStyle(7); 
   h_metsum_lly_inc->SetLineColor(kBlue);
-
+  h_metsum_llx_inc->GetYaxis()->SetTitle("Events / 1 GeV");
+  h_metsum_llx_inc->GetXaxis()->SetTitle("MET_{ll}");
   h_metsum_llx_inc->SetTitle("MC MET X vs Y (Inclusive)");
 
   h_metsum_llx_inc->Draw();
   h_metsum_lly_inc->Draw("histsame");//("same e1");
  
   pad_h19->RedrawAxis();
+  //--------------------------------
+  //all_fitting(h_metsum_llx_inc);
+  // all_fitting(h_metsum_lly_inc);
+  //--------------------------------
+ 
+  // TFile *metxy_inc_file = new TFile("metxy_inc.root","recreate");
+  //metxy_inc_file->cd();
+  //h_metsum_llx_inc->Write();
+  //h_metsum_lly_inc->Write();
 
-  cout<<"\nMC METx INC"<<endl;
-  fit(h_metsum_llx_inc);
-  cout<<"\nMC METy INC"<<endl;
-  fit(h_metsum_lly_inc);
-  
   //-------------------------------Legend---------------------------------------//
-  TLegend *leg19 = new TLegend(0.78, 0.63, 0.87, 0.89);
+  TLegend *leg19 = new TLegend(0.79,0.53,0.87,0.63);//(0.78, 0.63, 0.87, 0.89);
   leg19->SetLineColor(kWhite);
   leg19->SetTextFont(42); 
   leg19->SetTextSize(0.026);
@@ -2002,6 +2135,7 @@ int CorrDrawPlots3lep()
   leg19->SetFillColor(kWhite); 
   leg19->AddEntry("h_metsum_llx_inc","MC METx","ep");
   leg19->AddEntry("h_metsum_lly_inc","MC METy","ep");
+  // leg19->AddEntry("sum","MC MET Wieghted Average","ep");
 
   leg19->Draw();
   //-------------------------------------------------------------//
@@ -2029,7 +2163,7 @@ int CorrDrawPlots3lep()
   h_metsum_llx_inc_clone->Draw();
 
   //-------------------------------------------------------------//
-
+  
   //-----------------------X vs Y MC MET TAR0-----------------------------//
   //Canvas
   TCanvas *c20=new TCanvas("c20","X vs Y MC No Jets MET",800,800);
@@ -2050,21 +2184,17 @@ int CorrDrawPlots3lep()
   h_metsum_llx_tar0->SetLineColor(kRed);
   h_metsum_lly_tar0->SetMarkerColor(kBlue);
   h_metsum_lly_tar0->SetMarkerColor(kBlue);
+  h_metsum_llx_tar0->GetYaxis()->SetTitle("Events / 1 GeV");
+  h_metsum_llx_tar0->GetXaxis()->SetTitle("MET_{ll}");
   h_metsum_llx_tar0->SetTitle("MC MET X vs Y (No Jets)");
 
   h_metsum_llx_tar0->Draw();
   h_metsum_lly_tar0->Draw("histsame");//("same e1");
 
- 
   pad_h20->RedrawAxis();
 
-
-  cout<<"\nMC METx Tar0"<<endl;
-  fit(h_metsum_llx_tar0);
-  cout<<"\nMC METy Tar0"<<endl;
-  fit(h_metsum_lly_tar0);  
   //-------------------------------Legend---------------------------------------//
-  TLegend *leg20 = new TLegend(0.78, 0.63, 0.87, 0.89);
+  TLegend *leg20 = new TLegend(0.79, 0.53, 0.87, 0.63);
   leg20->SetLineColor(kWhite);
   leg20->SetTextFont(42); 
   leg20->SetTextSize(0.026);
@@ -2120,6 +2250,8 @@ int CorrDrawPlots3lep()
   h_metsum_llx_tar2->SetLineColor(kRed);
   h_metsum_lly_tar2->SetMarkerColor(kBlue);
   h_metsum_lly_tar2->SetMarkerColor(kBlue);
+  h_metsum_llx_tar2->GetYaxis()->SetTitle("Events / 1 GeV");
+  h_metsum_llx_tar2->GetXaxis()->SetTitle("MET_{ll}");
   h_metsum_llx_tar2->SetTitle("MC MET X vs Y (2 Jets)");
 
   h_metsum_llx_tar2->Draw();
@@ -2128,12 +2260,8 @@ int CorrDrawPlots3lep()
  
   pad_h21->RedrawAxis();
 
-  cout<<"\nMC METx Tar2"<<endl;
-  fit(h_metsum_llx_tar2);
-  cout<<"\nMC METy Tar2"<<endl;
-  fit(h_metsum_lly_tar2);   
   //-------------------------------Legend---------------------------------------//
-  TLegend *leg21 = new TLegend(0.78, 0.63, 0.87, 0.89);
+  TLegend *leg21 = new TLegend(0.79, 0.53, 0.87, 0.63);
   leg21->SetLineColor(kWhite);
   leg21->SetTextFont(42); 
   leg21->SetTextSize(0.026);
@@ -2190,16 +2318,23 @@ int CorrDrawPlots3lep()
   h_metdata_lly_inc->SetMarkerColor(kBlue);
   h_metdata_lly_inc->SetMarkerStyle(7); 
   h_metdata_lly_inc->SetLineColor(kBlue);
-
+  h_metdata_llx_inc->GetYaxis()->SetTitle("Events / 1 GeV");
+  h_metdata_llx_inc->GetXaxis()->SetTitle("MET_{ll}");
   h_metdata_llx_inc->SetTitle("Data MET X vs Y (Inclusive)");
 
   h_metdata_llx_inc->Draw();
   h_metdata_lly_inc->Draw("histsame");//("same e1");
  
   pad_h22->RedrawAxis();
+
+  // all_fitting(h_metdata_llx_inc);
+  // all_fitting(h_metsum_lly_inc);
   
+  // h_metdata_llx_inc->Write();
+  //h_metdata_lly_inc->Write();
+  //metxy_inc_file->Close();
   //-------------------------------Legend---------------------------------------//
-  TLegend *leg22 = new TLegend(0.78, 0.63, 0.87, 0.89);
+  TLegend *leg22 = new TLegend(0.79, 0.53, 0.87, 0.63);
   leg22->SetLineColor(kWhite);
   leg22->SetTextFont(42); 
   leg22->SetTextSize(0.026);
@@ -2256,7 +2391,8 @@ int CorrDrawPlots3lep()
   h_metdata_lly_tar0->SetMarkerColor(kBlue);
   h_metdata_lly_tar0->SetMarkerStyle(7); 
   h_metdata_lly_tar0->SetLineColor(kBlue);
-
+  h_metdata_llx_tar0->GetYaxis()->SetTitle("Events / 1 GeV");
+  h_metdata_llx_tar0->GetXaxis()->SetTitle("MET_{ll}");
   h_metdata_llx_tar0->SetTitle("Data MET X vs Y (No Jets)");
 
   h_metdata_llx_tar0->Draw();
@@ -2265,7 +2401,7 @@ int CorrDrawPlots3lep()
   pad_h23->RedrawAxis();
   
   //-------------------------------Legend---------------------------------------//
-  TLegend *leg23 = new TLegend(0.78, 0.63, 0.87, 0.89);
+  TLegend *leg23 = new TLegend(0.79, 0.53, 0.87, 0.63);
   leg23->SetLineColor(kWhite);
   leg23->SetTextFont(42); 
   leg23->SetTextSize(0.026);
@@ -2323,7 +2459,8 @@ int CorrDrawPlots3lep()
   h_metdata_lly_tar2->SetMarkerColor(kBlue);
   h_metdata_lly_tar2->SetMarkerStyle(7); 
   h_metdata_lly_tar2->SetLineColor(kBlue);
-
+  h_metdata_llx_tar2->GetYaxis()->SetTitle("Events / 1 GeV");
+  h_metdata_llx_tar2->GetXaxis()->SetTitle("MET_{ll}");
   h_metdata_llx_tar2->SetTitle("Data MET X vs Y (2 Jets)");
 
   h_metdata_llx_tar2->Draw();
@@ -2332,7 +2469,7 @@ int CorrDrawPlots3lep()
   pad_h24->RedrawAxis();
   
   //-------------------------------Legend---------------------------------------//
-  TLegend *leg24 = new TLegend(0.78, 0.63, 0.87, 0.89);
+  TLegend *leg24 = new TLegend(0.79, 0.53, 0.87, 0.63);
   leg24->SetLineColor(kWhite);
   leg24->SetTextFont(42); 
   leg24->SetTextSize(0.026);
@@ -2367,8 +2504,322 @@ int CorrDrawPlots3lep()
   h_metdata_llx_tar2_clone->Draw();
 
   //-------------------------------------------------------------//
+  */
+  //-------------------------------------------------------------//
+  //--------------------------PHI--------------------------------//
+  //Canvas
+  TCanvas *c25=new TCanvas("c25","MET phi MC vs DataT",800,800);
+  TPad *pad_h25 = new TPad("pad_h25","Histo Pad25",0., 0, 1., 0.8);
+  TPad *pad_r25 = new TPad("pad_r25","Ratio Pad25",0., 0.8, 1., 1.);
 
+  pad_h25->Draw();
+  pad_r25->Draw();
+
+  pad_h25->cd();
+
+  h_phisum->GetXaxis()->SetRangeUser(-4,4);
+  h_phisum->GetYaxis()->SetRangeUser(0,6.5e5);
+  
+  h_phisum->SetMarkerColor(kRed);
+  h_phisum->SetMarkerStyle(7);
+  h_phisum->SetLineColor(kRed);
+  v_phi[size-1]->SetMarkerColor(kBlue);
+  v_phi[size-1]->SetMarkerStyle(7); 
+  v_phi[size-1]->SetLineColor(kBlue);
+  h_phisum->GetYaxis()->SetTitle("Events / 1 GeV");
+  h_phisum->GetXaxis()->SetTitle("MET_{ll}");
+  h_phisum->SetTitle("MET phi MC vs Data");
+
+  h_phisum->Draw();
+  v_phi[size-1]->Draw("histsame");//("same e1");
+ 
+  pad_h25->RedrawAxis();
+  
+
+  //-------------------------------Legend---------------------------------------//
+  TLegend *leg25 = new TLegend(0.79, 0.53, 0.87, 0.63);
+  leg25->SetLineColor(kWhite);
+  leg25->SetTextFont(42); 
+  leg25->SetTextSize(0.026);
+  leg25->SetShadowColor(kWhite); 
+  leg25->SetFillColor(kWhite); 
+  leg25->AddEntry("h_phisum","MC MET phi","ep");
+  //  leg25->AddEntry("v_phi[size-1]","Data MET phi","ep");
+  leg25->AddEntry("h_phi_data","Data MET phi","ep");
+
+  leg25->Draw();
+  //-------------------------------------------------------------//
+  //---------------------Ratio Pad-------------------------------//
+  
+  pad_r25->cd();
+
+  TH1D *h_phidata_clone = (TH1D*) v_phi[size-1]->Clone("h_phidata_clone");
+
+  //  overflow(h_metsum_ee_tar2);
+  
+  //Divide
+  h_phidata_clone->Divide(h_phidata_clone,h_phisum);
+
+  h_phidata_clone->GetXaxis()->SetRangeUser(-4,4); 
+  h_phidata_clone->GetYaxis()->SetRangeUser(0,2);
+  h_phidata_clone->GetYaxis()->SetNdivisions(4);
+  h_phidata_clone->GetYaxis()->SetLabelSize(.12);
+  h_phidata_clone->GetYaxis()->SetTitle("Data/MC");
+  h_phidata_clone->SetLineColor(kBlack);
+  h_phidata_clone->SetMarkerColor(kBlack);
+
+  pad_r25->SetGridy();
+
+  h_phidata_clone->Draw();
+  /*
+  TH1D *h_phidata_clone_scaled = (TH1D*) h_phidata_clone->Clone("h_phidata_clone_scaled");
+
+  double k = h_phisum->Integral(0,-1) / v_phi[size-1]->Integral(0,-1);
+  h_phidata_clone_scaled->Scale( k );  
+  
+  TFile *phiRatioFile = new TFile("phiRatio.root","recreate");
+  phiRatioFile->cd();
+  h_phidata_clone->Write();
+  h_phidata_clone_scaled->Write();
+  phiRatioFile->Close();  
+  */
   //---------------------------------------//
+  /*
+  //-----------------------MC vs Data METx INC-----------------------------//
+  //Canvas
+  TCanvas *c26=new TCanvas("c26","Data vs MC Inclusive METx",800,800);
+  TPad *pad_h26 = new TPad("pad_h26","Histo Pad26",0., 0, 1., 0.8);
+  TPad *pad_r26 = new TPad("pad_r26","Ratio Pad26",0., 0.8, 1., 1.);
+
+  pad_h26->Draw();
+  pad_r26->Draw();
+
+  pad_h26->SetLogy();
+
+  pad_h26->cd();
+  
+  h_metsum_llx_inc->GetXaxis()->SetRangeUser(-200,200);
+  h_metdata_llx_inc->GetXaxis()->SetRangeUser(-200,200);
+  
+  h_metsum_llx_inc->SetMarkerColor(kRed);
+  h_metsum_llx_inc->SetMarkerStyle(7);
+  h_metsum_llx_inc->SetLineColor(kRed);
+  h_metdata_llx_inc->SetMarkerColor(kBlue);
+  h_metdata_llx_inc->SetMarkerStyle(7); 
+  h_metdata_llx_inc->SetLineColor(kBlue);
+  h_metsum_llx_inc->GetYaxis()->SetTitle("Events / 1 GeV");
+  h_metsum_llx_inc->GetXaxis()->SetTitle("MET_{ll}");
+  h_metsum_llx_inc->SetTitle("Data vs MC METx (Inclusive)");
+
+  h_metsum_llx_inc->Draw();
+  h_metdata_llx_inc->Draw("histsame");//("same e1");
+ 
+  pad_h26->RedrawAxis();
+  //--------------------------------
+  //all_fitting(h_metsum_llx_inc);
+  // all_fitting(h_metdata_llx_inc);
+  //--------------------------------
+  
+ // TFile *metxy_inc_file = new TFile("metxy_inc.root","recreate");
+ // metxy_inc_file->cd();
+ // h_metsum_llx_inc->Write();
+ // h_metdata_llx_inc->Write();
+  
+  //-------------------------------Legend---------------------------------------//
+  TLegend *leg26 = new TLegend(0.79,0.53,0.87,0.63);//(0.78, 0.63, 0.87, 0.89);
+  leg26->SetLineColor(kWhite);
+  leg26->SetTextFont(42); 
+  leg26->SetTextSize(0.026);
+  leg26->SetShadowColor(kWhite); 
+  leg26->SetFillColor(kWhite); 
+  leg26->AddEntry("h_metsum_llx_inc","MC METx","ep");
+  leg26->AddEntry("h_metdata_llx_inc","Data METx","ep");
+  // leg26->AddEntry("sum","MC MET Wieghted Average","ep");
+
+  leg26->Draw();
+  //-------------------------------------------------------------//
+  //---------------------Ratio Pad-------------------------------//
+
+  pad_r26->cd();
+
+  TH1D *h_metdata_llx_inc_clone2 = (TH1D*) h_metdata_llx_inc->Clone("h_metdata_llx_inc_clone2");
+
+  //  overflow(h_metsum_ee_inc);
+  
+  //Divide
+  h_metdata_llx_inc_clone2->Divide(h_metdata_llx_inc_clone,h_metsum_llx_inc);
+
+  h_metdata_llx_inc_clone2->GetXaxis()->SetRangeUser(-200,200); 
+  h_metdata_llx_inc_clone2->GetYaxis()->SetRangeUser(0,2);
+  h_metdata_llx_inc_clone2->GetYaxis()->SetNdivisions(4);
+  h_metdata_llx_inc_clone2->GetYaxis()->SetLabelSize(.12);
+  h_metdata_llx_inc_clone2->GetYaxis()->SetTitle("X/Y");
+  h_metdata_llx_inc_clone2->SetLineColor(kBlack);
+  h_metdata_llx_inc_clone2->SetMarkerColor(kBlack);
+
+  pad_r26->SetGridy();
+
+  h_metdata_llx_inc_clone2->Draw();
+
+  //-------------------------------------------------------------//
+
+ //-----------------------MC vs Data METx TAR0-----------------------------//
+  //Canvas
+  TCanvas *c27=new TCanvas("c27","Data vs MC No Jets METx",800,800);
+  TPad *pad_h27 = new TPad("pad_h27","Histo Pad27",0., 0, 1., 0.8);
+  TPad *pad_r27 = new TPad("pad_r27","Ratio Pad27",0., 0.8, 1., 1.);
+
+  pad_h27->Draw();
+  pad_r27->Draw();
+
+  pad_h27->SetLogy();
+
+  pad_h27->cd();
+  
+  h_metsum_llx_tar0->GetXaxis()->SetRangeUser(-200,200);
+  h_metdata_llx_tar0->GetXaxis()->SetRangeUser(-200,200);
+  
+  h_metsum_llx_tar0->SetMarkerColor(kRed);
+  h_metsum_llx_tar0->SetMarkerStyle(7);
+  h_metsum_llx_tar0->SetLineColor(kRed);
+  h_metdata_llx_tar0->SetMarkerColor(kBlue);
+  h_metdata_llx_tar0->SetMarkerStyle(7); 
+  h_metdata_llx_tar0->SetLineColor(kBlue);
+  h_metsum_llx_tar0->GetYaxis()->SetTitle("Events / 1 GeV");
+  h_metsum_llx_tar0->GetXaxis()->SetTitle("MET_{ll}");
+  h_metsum_llx_tar0->SetTitle("Data vs MC METx (No Jets)");
+
+  h_metsum_llx_tar0->Draw();
+  h_metdata_llx_tar0->Draw("histsame");//("same e1");
+ 
+  pad_h27->RedrawAxis();
+  //--------------------------------
+  //all_fitting(h_metsum_llx_tar0);
+  // all_fitting(h_metdata_llx_tar0);
+  //--------------------------------
+  
+ // TFile *metxy_tar0_file = new TFile("metxy_tar0.root","recreate");
+ // metxy_tar0_file->cd();
+ // h_metsum_llx_tar0->Write();
+ // h_metdata_llx_tar0->Write();
+  
+  //-------------------------------Legend---------------------------------------//
+  TLegend *leg27 = new TLegend(0.79,0.53,0.87,0.63);//(0.78, 0.63, 0.87, 0.89);
+  leg27->SetLineColor(kWhite);
+  leg27->SetTextFont(42); 
+  leg27->SetTextSize(0.027);
+  leg27->SetShadowColor(kWhite); 
+  leg27->SetFillColor(kWhite); 
+  leg27->AddEntry("h_metsum_llx_tar0","MC METx","ep");
+  leg27->AddEntry("h_metdata_llx_tar0","Data METx","ep");
+  // leg27->AddEntry("sum","MC MET Wieghted Average","ep");
+
+  leg27->Draw();
+  //-------------------------------------------------------------//
+  //---------------------Ratio Pad-------------------------------//
+
+  pad_r27->cd();
+
+  TH1D *h_metdata_llx_tar0_clone2 = (TH1D*) h_metdata_llx_tar0->Clone("h_metdata_llx_tar0_clone2");
+
+  //  overflow(h_metsum_ee_tar0);
+  
+  //Divide
+  h_metdata_llx_tar0_clone2->Divide(h_metdata_llx_tar0_clone,h_metsum_llx_tar0);
+
+  h_metdata_llx_tar0_clone2->GetXaxis()->SetRangeUser(-200,200); 
+  h_metdata_llx_tar0_clone2->GetYaxis()->SetRangeUser(0,2);
+  h_metdata_llx_tar0_clone2->GetYaxis()->SetNdivisions(4);
+  h_metdata_llx_tar0_clone2->GetYaxis()->SetLabelSize(.12);
+  h_metdata_llx_tar0_clone2->GetYaxis()->SetTitle("X/Y");
+  h_metdata_llx_tar0_clone2->SetLineColor(kBlack);
+  h_metdata_llx_tar0_clone2->SetMarkerColor(kBlack);
+
+  pad_r27->SetGridy();
+
+  h_metdata_llx_tar0_clone2->Draw();
+
+  //-------------------------------------------------------------//
+
+
+ //-----------------------MC vs Data METx TAR2-----------------------------//
+  //Canvas
+  TCanvas *c28=new TCanvas("c28","Data vs MC 2 Jets METx",800,800);
+  TPad *pad_h28 = new TPad("pad_h28","Histo Pad28",0., 0, 1., 0.8);
+  TPad *pad_r28 = new TPad("pad_r28","Ratio Pad28",0., 0.8, 1., 1.);
+
+  pad_h28->Draw();
+  pad_r28->Draw();
+
+  pad_h28->SetLogy();
+
+  pad_h28->cd();
+  
+  h_metsum_llx_tar2->GetXaxis()->SetRangeUser(-200,200);
+  h_metdata_llx_tar2->GetXaxis()->SetRangeUser(-200,200);
+  
+  h_metsum_llx_tar2->SetMarkerColor(kRed);
+  h_metsum_llx_tar2->SetMarkerStyle(7);
+  h_metsum_llx_tar2->SetLineColor(kRed);
+  h_metdata_llx_tar2->SetMarkerColor(kBlue);
+  h_metdata_llx_tar2->SetMarkerStyle(7); 
+  h_metdata_llx_tar2->SetLineColor(kBlue);
+  h_metsum_llx_tar2->GetYaxis()->SetTitle("Events / 1 GeV");
+  h_metsum_llx_tar2->GetXaxis()->SetTitle("MET_{ll}");
+  h_metsum_llx_tar2->SetTitle("Data vs MC METx (2 Jets)");
+
+  h_metsum_llx_tar2->Draw();
+  h_metdata_llx_tar2->Draw("histsame");//("same e1");
+ 
+  pad_h28->RedrawAxis();
+  //--------------------------------
+  //all_fitting(h_metsum_llx_tar2);
+  // all_fitting(h_metdata_llx_tar2);
+  //--------------------------------
+  
+ // TFile *metxy_tar2_file = new TFile("metxy_tar2.root","recreate");
+ // metxy_tar2_file->cd();
+ // h_metsum_llx_tar2->Write();
+ // h_metdata_llx_tar2->Write();
+  
+  //-------------------------------Legend---------------------------------------//
+  TLegend *leg28 = new TLegend(0.79,0.53,0.87,0.63);//(0.78, 0.63, 0.87, 0.89);
+  leg28->SetLineColor(kWhite);
+  leg28->SetTextFont(42); 
+  leg28->SetTextSize(0.028);
+  leg28->SetShadowColor(kWhite); 
+  leg28->SetFillColor(kWhite); 
+  leg28->AddEntry("h_metsum_llx_tar2","MC METx","ep");
+  leg28->AddEntry("h_metdata_llx_tar2","Data METx","ep");
+  // leg28->AddEntry("sum","MC MET Wieghted Average","ep");
+
+  leg28->Draw();
+  //-------------------------------------------------------------//
+  //---------------------Ratio Pad-------------------------------//
+
+  pad_r28->cd();
+
+  TH1D *h_metdata_llx_tar2_clone2 = (TH1D*) h_metdata_llx_tar2->Clone("h_metdata_llx_tar2_clone2");
+
+  //  overflow(h_metsum_ee_tar2);
+  
+  //Divide
+  h_metdata_llx_tar2_clone2->Divide(h_metdata_llx_tar2_clone,h_metsum_llx_tar2);
+
+  h_metdata_llx_tar2_clone2->GetXaxis()->SetRangeUser(-200,200); 
+  h_metdata_llx_tar2_clone2->GetYaxis()->SetRangeUser(0,2);
+  h_metdata_llx_tar2_clone2->GetYaxis()->SetNdivisions(4);
+  h_metdata_llx_tar2_clone2->GetYaxis()->SetLabelSize(.12);
+  h_metdata_llx_tar2_clone2->GetYaxis()->SetTitle("X/Y");
+  h_metdata_llx_tar2_clone2->SetLineColor(kBlack);
+  h_metdata_llx_tar2_clone2->SetMarkerColor(kBlack);
+
+  pad_r28->SetGridy();
+
+  h_metdata_llx_tar2_clone2->Draw();
+
+  //-------------------------------------------------------------//
+  */  
   /*
   c1->SaveAs("./3lep_pics/mll_inc.jpg");
   //  c2->SaveAs("./3lep_pics/mll_mumu_inc.jpg");
