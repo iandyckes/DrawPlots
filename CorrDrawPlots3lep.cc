@@ -33,6 +33,9 @@ int met_minbin=0;  //
 int met_maxbin=200;
 int met_binsize=2;
 int corecutoff=60;
+int sumet_minbin=0;
+int sumet_maxbin=2500;
+int sumet_binsize=5;
 //-----------------------------------------//
 
 
@@ -46,8 +49,11 @@ void h_format(TH1F *histo)
 	{histo->Rebin(5);}
   else if (name.Contains("inc") && name.Contains("mll"))
 	{histo->Rebin(5);}
-  else if (name.Contains("met"))
+  else if (name.Contains("met") && !name.Contains("sum"))
 	{histo->Rebin(2);
+	  histo->SetMarkerSize(0.5);}
+  else if (name.Contains("met") && name.Contains("sum"))
+	{histo->Rebin(5);
 	  histo->SetMarkerSize(0.5);}
 
   if(name.Contains("zjets"))     //long because first, needs more formatting
@@ -84,6 +90,22 @@ void h_format(TH1F *histo)
 		  else if(name.Contains("mumu"))
 			{
 			  histo->GetXaxis()->SetTitle("met_{mumu} (GeV)"); 
+			  histo->GetYaxis()->SetTitle("Events / 2 GeV");
+			}
+		}
+	  if(name.Contains("sumet"))
+		{  
+		  histo->GetXaxis()->SetRangeUser(0,2500);  //350
+		  histo->GetYaxis()->SetRangeUser(1e-1,1e5);//1e0,5e7
+		 
+		  if(name.Contains("ee"))
+			{
+			  histo->GetXaxis()->SetTitle("summet_{ll} (GeV)"); 
+			  histo->GetYaxis()->SetTitle("Events / 2 GeV");
+			}
+		  else if(name.Contains("mumu"))
+			{
+			  histo->GetXaxis()->SetTitle("summet_{mumu} (GeV)"); 
 			  histo->GetYaxis()->SetTitle("Events / 2 GeV");
 			}
 		}
@@ -137,8 +159,10 @@ void overflow(TH1F *histo)
 
   if(name.Contains("mll"))
 	{overflowbin=((mll_maxbin - mll_minbin)/mll_binsize);}
-  else if(name.Contains("met"))
+  else if(name.Contains("met") && !name.Contains("sum"))
 	{overflowbin=((met_maxbin - met_minbin)/met_binsize)+1;}
+  // else if(name.Contains("met") && name.Contains("sum"))
+  //	{overflowbin=((sumet_maxbin - sumet_minbin)/sumet_binsize)+1;}
 
   histo->SetBinContent(overflowbin,histo->GetBinContent(overflowbin)+histo->IntegralAndError(overflowbin,-1,uncertainty));
 
@@ -272,6 +296,54 @@ void all_fitting(TH1D *histo)
   OutputFile->Close();
 }
 
+double find_width(TH1F *histo)
+{
+  int maxbin = 0;
+  maxbin = histo->GetMaximumBin();
+  double max = 0;
+  max = histo->GetBinContent(maxbin);
+  double half_max = 0;
+  half_max = pow( 10, 0.5*TMath::Log10(max) );
+
+  int half_maxbin = 0;
+  int half_maxbin_low = 0;  
+  int half_maxbin_high = 0;  
+  int percent_low = 1.00;  //determine if bin content is close enought to half_max
+  int percent_high = 0.95;  //determine if bin content is close enought to half_max
+
+
+  int i = maxbin;
+  bool again = true;
+  while(again && i<=histo->GetNbinsX())
+	{
+	  if(TMath::Abs( half_max - histo->GetBinContent(i) ) < percent_low*half_max)
+		{
+		  half_maxbin_low = i;
+		  half_maxbin_high = i;
+		  again=false;
+		  i++;
+		  while(TMath::Abs( half_max - histo->GetBinContent(i) ) < percent_high*half_max && i<=histo->GetNbinsX())
+			{half_maxbin_high=i;
+			  i++;}
+		}
+	  else
+		{
+		  i++;
+		}
+	}
+  
+  half_maxbin = (half_maxbin_high + half_maxbin_low)/2;
+  double width = 0;
+  width = (half_maxbin - maxbin)*histo->GetBinWidth(maxbin);
+  cout<<"maxbin = "<<maxbin<<endl;
+  cout<<"max = "<<max<<endl;
+  cout<<"half_max = "<<half_max<<endl;
+  cout<<"half_maxbin_low = "<<half_maxbin_low<<endl;
+  cout<<"half_maxbin_high = "<<half_maxbin_high<<endl;
+  cout<<"half_maxbin = "<<half_maxbin<<endl;
+  return width;
+}
+
 //----------------------------------------------------------------------------------------------------------//
 //----------------------------------------------------------------------------------------------------------//
 //----------------------------------------------------------------------------------------------------------//
@@ -303,6 +375,9 @@ int CorrDrawPlots3lep()
   TH2F *h_met_emu2_tar0_zjets = (TH2F*) InputFile->Get("h_met_emu2_tar_njets0")->Clone("h_met_emu2_tar0_zjets");
   TH2F *h_met_emu2_tar2_zjets = (TH2F*) InputFile->Get("h_met_emu2_tar_njets2")->Clone("h_met_emu2_tar2_zjets");
   TH1F *h_phi_zjets = (TH1F*) InputFile->Get("h_phi")->Clone("h_phi_zjets");
+  TH1F *h_sumet_ee_inc_zjets = (TH1F*) InputFile->Get("h_sumet_ee_inc")->Clone("h_sumet_ee_inc_zjets");
+  TH1F *h_sumet_mumu_inc_zjets = (TH1F*) InputFile->Get("h_sumet_mumu_inc")->Clone("h_sumet_mumu_inc_zjets");
+  TH1F *h_sumet_emu_inc_zjets = (TH1F*) InputFile->Get("h_sumet_emu_inc")->Clone("h_sumet_emu_inc_zjets");
 
   TFile *InputFile_t = new TFile("singlet.root","read");
   TH1F *h_mll_ee_inc_singlet = (TH1F*) InputFile_t->Get("h_mll_ee_inc")->Clone("h_mll_ee_inc_singlet"); 
@@ -327,6 +402,9 @@ int CorrDrawPlots3lep()
   TH2F *h_met_emu2_tar0_singlet = (TH2F*) InputFile_t->Get("h_met_emu2_tar_njets0")->Clone("h_met_emu2_tar0_singlet");
   TH2F *h_met_emu2_tar2_singlet = (TH2F*) InputFile_t->Get("h_met_emu2_tar_njets2")->Clone("h_met_emu2_tar2_singlet");
   TH1F *h_phi_singlet = (TH1F*) InputFile_t->Get("h_phi")->Clone("h_phi_singlet");
+  TH1F *h_sumet_ee_inc_singlet = (TH1F*) InputFile_t->Get("h_sumet_ee_inc")->Clone("h_sumet_ee_inc_singlet");
+  TH1F *h_sumet_mumu_inc_singlet = (TH1F*) InputFile_t->Get("h_sumet_mumu_inc")->Clone("h_sumet_mumu_inc_singlet");
+  TH1F *h_sumet_emu_inc_singlet = (TH1F*) InputFile_t->Get("h_sumet_emu_inc")->Clone("h_sumet_emu_inc_singlet");
 
   TFile *InputFile_wz = new TFile("wz.root","read");
   TH1F *h_mll_ee_inc_wz = (TH1F*) InputFile_wz->Get("h_mll_ee_inc")->Clone("h_mll_ee_inc_wz"); 
@@ -351,6 +429,9 @@ int CorrDrawPlots3lep()
   TH2F *h_met_emu2_tar0_wz = (TH2F*) InputFile_wz->Get("h_met_emu2_tar_njets0")->Clone("h_met_emu2_tar0_wz");
   TH2F *h_met_emu2_tar2_wz = (TH2F*) InputFile_wz->Get("h_met_emu2_tar_njets2")->Clone("h_met_emu2_tar2_wz");
   TH1F *h_phi_wz = (TH1F*) InputFile_wz->Get("h_phi")->Clone("h_phi_wz");
+  TH1F *h_sumet_ee_inc_wz = (TH1F*) InputFile_wz->Get("h_sumet_ee_inc")->Clone("h_sumet_ee_inc_wz");
+  TH1F *h_sumet_mumu_inc_wz = (TH1F*) InputFile_wz->Get("h_sumet_mumu_inc")->Clone("h_sumet_mumu_inc_wz");
+  TH1F *h_sumet_emu_inc_wz = (TH1F*) InputFile_wz->Get("h_sumet_emu_inc")->Clone("h_sumet_emu_inc_wz");
 
   TFile *InputFile_zz = new TFile("zz.root","read");
   TH1F *h_mll_ee_inc_zz = (TH1F*) InputFile_zz->Get("h_mll_ee_inc")->Clone("h_mll_ee_inc_zz"); 
@@ -375,6 +456,9 @@ int CorrDrawPlots3lep()
   TH2F *h_met_emu2_tar0_zz = (TH2F*) InputFile_zz->Get("h_met_emu2_tar_njets0")->Clone("h_met_emu2_tar0_zz");
   TH2F *h_met_emu2_tar2_zz = (TH2F*) InputFile_zz->Get("h_met_emu2_tar_njets2")->Clone("h_met_emu2_tar2_zz");
   TH1F *h_phi_zz = (TH1F*) InputFile_zz->Get("h_phi")->Clone("h_phi_zz");
+  TH1F *h_sumet_ee_inc_zz = (TH1F*) InputFile_zz->Get("h_sumet_ee_inc")->Clone("h_sumet_ee_inc_zz");
+  TH1F *h_sumet_mumu_inc_zz = (TH1F*) InputFile_zz->Get("h_sumet_mumu_inc")->Clone("h_sumet_mumu_inc_zz");
+  TH1F *h_sumet_emu_inc_zz = (TH1F*) InputFile_zz->Get("h_sumet_emu_inc")->Clone("h_sumet_emu_inc_zz");
 
   TFile *InputFile_ttbar = new TFile("ttbar.root","read");
   TH1F *h_mll_ee_inc_ttbar = (TH1F*) InputFile_ttbar->Get("h_mll_ee_inc")->Clone("h_mll_ee_inc_ttbar");
@@ -399,6 +483,9 @@ int CorrDrawPlots3lep()
   TH2F *h_met_emu2_tar0_ttbar = (TH2F*) InputFile_ttbar->Get("h_met_emu2_tar_njets0")->Clone("h_met_emu2_tar0_ttbar");
   TH2F *h_met_emu2_tar2_ttbar = (TH2F*) InputFile_ttbar->Get("h_met_emu2_tar_njets2")->Clone("h_met_emu2_tar2_ttbar");
   TH1F *h_phi_ttbar = (TH1F*) InputFile_ttbar->Get("h_phi")->Clone("h_phi_ttbar");
+  TH1F *h_sumet_ee_inc_ttbar = (TH1F*) InputFile_ttbar->Get("h_sumet_ee_inc")->Clone("h_sumet_ee_inc_ttbar");
+  TH1F *h_sumet_mumu_inc_ttbar = (TH1F*) InputFile_ttbar->Get("h_sumet_mumu_inc")->Clone("h_sumet_mumu_inc_ttbar");
+  TH1F *h_sumet_emu_inc_ttbar = (TH1F*) InputFile_ttbar->Get("h_sumet_emu_inc")->Clone("h_sumet_emu_inc_ttbar");
 
   TFile *InputFile_ww = new TFile("ww.root","read");
   TH1F *h_mll_ee_inc_ww = (TH1F*) InputFile_ww->Get("h_mll_ee_inc")->Clone("h_mll_ee_inc_ww");
@@ -423,6 +510,9 @@ int CorrDrawPlots3lep()
   TH2F *h_met_emu2_tar0_ww = (TH2F*) InputFile_ww->Get("h_met_emu2_tar_njets0")->Clone("h_met_emu2_tar0_ww");
   TH2F *h_met_emu2_tar2_ww = (TH2F*) InputFile_ww->Get("h_met_emu2_tar_njets2")->Clone("h_met_emu2_tar2_ww");
   TH1F *h_phi_ww = (TH1F*) InputFile_ww->Get("h_phi")->Clone("h_phi_ww");
+  TH1F *h_sumet_ee_inc_ww = (TH1F*) InputFile_ww->Get("h_sumet_ee_inc")->Clone("h_sumet_ee_inc_ww");
+  TH1F *h_sumet_mumu_inc_ww = (TH1F*) InputFile_ww->Get("h_sumet_mumu_inc")->Clone("h_sumet_mumu_inc_ww");
+  TH1F *h_sumet_emu_inc_ww = (TH1F*) InputFile_ww->Get("h_sumet_emu_inc")->Clone("h_sumet_emu_inc_ww");
 
   TFile *InputFile_ttv = new TFile("ttv.root","read");
   TH1F *h_mll_ee_inc_ttv = (TH1F*) InputFile_ttv->Get("h_mll_ee_inc")->Clone("h_mll_ee_inc_ttv");
@@ -447,6 +537,9 @@ int CorrDrawPlots3lep()
   TH2F *h_met_emu2_tar0_ttv = (TH2F*) InputFile_ttv->Get("h_met_emu2_tar_njets0")->Clone("h_met_emu2_tar0_ttv");
   TH2F *h_met_emu2_tar2_ttv = (TH2F*) InputFile_ttv->Get("h_met_emu2_tar_njets2")->Clone("h_met_emu2_tar2_ttv");
   TH1F *h_phi_ttv = (TH1F*) InputFile_ttv->Get("h_phi")->Clone("h_phi_ttv");
+  TH1F *h_sumet_ee_inc_ttv = (TH1F*) InputFile_ttv->Get("h_sumet_ee_inc")->Clone("h_sumet_ee_inc_ttv");
+  TH1F *h_sumet_mumu_inc_ttv = (TH1F*) InputFile_ttv->Get("h_sumet_mumu_inc")->Clone("h_sumet_mumu_inc_ttv");
+  TH1F *h_sumet_emu_inc_ttv = (TH1F*) InputFile_ttv->Get("h_sumet_emu_inc")->Clone("h_sumet_emu_inc_ttv");
 
   TFile *InputFile_vvv = new TFile("vvv.root","read");
   TH1F *h_mll_ee_inc_vvv = (TH1F*) InputFile_vvv->Get("h_mll_ee_inc")->Clone("h_mll_ee_inc_vvv");
@@ -471,6 +564,9 @@ int CorrDrawPlots3lep()
   TH2F *h_met_emu2_tar0_vvv = (TH2F*) InputFile_vvv->Get("h_met_emu2_tar_njets0")->Clone("h_met_emu2_tar0_vvv");
   TH2F *h_met_emu2_tar2_vvv = (TH2F*) InputFile_vvv->Get("h_met_emu2_tar_njets2")->Clone("h_met_emu2_tar2_vvv");
   TH1F *h_phi_vvv = (TH1F*) InputFile_vvv->Get("h_phi")->Clone("h_phi_vvv");
+  TH1F *h_sumet_ee_inc_vvv = (TH1F*) InputFile_vvv->Get("h_sumet_ee_inc")->Clone("h_sumet_ee_inc_vvv");
+  TH1F *h_sumet_mumu_inc_vvv = (TH1F*) InputFile_vvv->Get("h_sumet_mumu_inc")->Clone("h_sumet_mumu_inc_vvv");
+  TH1F *h_sumet_emu_inc_vvv = (TH1F*) InputFile_vvv->Get("h_sumet_emu_inc")->Clone("h_sumet_emu_inc_vvv");
 
   TFile *InputFile_data = new TFile("data.root","read");
   TH1F *h_mll_ee_inc_data = (TH1F*) InputFile_data->Get("h_mll_ee_inc")->Clone("h_mll_ee_inc_data");
@@ -495,6 +591,9 @@ int CorrDrawPlots3lep()
   TH2F *h_met_emu2_tar0_data = (TH2F*) InputFile_data->Get("h_met_emu2_tar_njets0")->Clone("h_met_emu2_tar0_data");
   TH2F *h_met_emu2_tar2_data = (TH2F*) InputFile_data->Get("h_met_emu2_tar_njets2")->Clone("h_met_emu2_tar2_data");
   TH1F *h_phi_data = (TH1F*) InputFile_data->Get("h_phi")->Clone("h_phi_data");
+  TH1F *h_sumet_ee_inc_data = (TH1F*) InputFile_data->Get("h_sumet_ee_inc")->Clone("h_sumet_ee_inc_data");
+  TH1F *h_sumet_mumu_inc_data = (TH1F*) InputFile_data->Get("h_sumet_mumu_inc")->Clone("h_sumet_mumu_inc_data");
+  TH1F *h_sumet_emu_inc_data = (TH1F*) InputFile_data->Get("h_sumet_emu_inc")->Clone("h_sumet_emu_inc_data");
 
   //-------------------------------------------------------------------------------------------------//
 
@@ -741,6 +840,39 @@ int CorrDrawPlots3lep()
   v_phi.push_back(h_phi_ttv);
   v_phi.push_back(h_phi_vvv);
   v_phi.push_back(h_phi_data);
+
+  vector<TH1F*> v_sumet_ee_inc;
+  v_sumet_ee_inc.push_back(h_sumet_ee_inc_zjets);
+  v_sumet_ee_inc.push_back(h_sumet_ee_inc_wz);
+  v_sumet_ee_inc.push_back(h_sumet_ee_inc_zz);
+  v_sumet_ee_inc.push_back(h_sumet_ee_inc_ttbar);
+  v_sumet_ee_inc.push_back(h_sumet_ee_inc_singlet);
+  v_sumet_ee_inc.push_back(h_sumet_ee_inc_ww);
+  v_sumet_ee_inc.push_back(h_sumet_ee_inc_ttv);
+  v_sumet_ee_inc.push_back(h_sumet_ee_inc_vvv);
+  v_sumet_ee_inc.push_back(h_sumet_ee_inc_data);
+
+  vector<TH1F*> v_sumet_mumu_inc;
+  v_sumet_mumu_inc.push_back(h_sumet_mumu_inc_zjets);
+  v_sumet_mumu_inc.push_back(h_sumet_mumu_inc_wz);
+  v_sumet_mumu_inc.push_back(h_sumet_mumu_inc_zz);
+  v_sumet_mumu_inc.push_back(h_sumet_mumu_inc_ttbar);
+  v_sumet_mumu_inc.push_back(h_sumet_mumu_inc_singlet);
+  v_sumet_mumu_inc.push_back(h_sumet_mumu_inc_ww);
+  v_sumet_mumu_inc.push_back(h_sumet_mumu_inc_ttv);
+  v_sumet_mumu_inc.push_back(h_sumet_mumu_inc_vvv);
+  v_sumet_mumu_inc.push_back(h_sumet_mumu_inc_data);
+
+  vector<TH1F*> v_sumet_emu_inc;
+  v_sumet_emu_inc.push_back(h_sumet_emu_inc_zjets);
+  v_sumet_emu_inc.push_back(h_sumet_emu_inc_wz);
+  v_sumet_emu_inc.push_back(h_sumet_emu_inc_zz);
+  v_sumet_emu_inc.push_back(h_sumet_emu_inc_ttbar);
+  v_sumet_emu_inc.push_back(h_sumet_emu_inc_singlet);
+  v_sumet_emu_inc.push_back(h_sumet_emu_inc_ww);
+  v_sumet_emu_inc.push_back(h_sumet_emu_inc_ttv);
+  v_sumet_emu_inc.push_back(h_sumet_emu_inc_vvv);
+  v_sumet_emu_inc.push_back(h_sumet_emu_inc_data);
   //------------------------------------FSBG-------------------------------------------------------------//
 
   //loop through ee and mumu and subract eu*R.  Before formatting, overflow, summing, and stacking
@@ -761,6 +893,8 @@ int CorrDrawPlots3lep()
 	  v_met_ll_inc[i]->Add(v_met_emu2_inc[i], -R);
 	  v_met_ll_tar0[i]->Add(v_met_emu2_tar0[i], -R);
 	  v_met_ll_tar2[i]->Add(v_met_emu2_tar2[i], -R);
+	  v_sumet_ee_inc[i]->Add(v_sumet_emu_inc[i],-Ree);      //don't forget minus
+	  v_sumet_mumu_inc[i]->Add(v_sumet_emu_inc[i],-Rmumu);  //can use clones to not permanently change
 	}
   
   //----------------------add ee and mumu----------------------------//
@@ -771,12 +905,13 @@ int CorrDrawPlots3lep()
 	  v_met_ee_inc[i]->Add(v_met_mumu_inc[i]);     
 	  v_met_ee_tar0[i]->Add(v_met_mumu_tar0[i]);      
 	  v_met_ee_tar2[i]->Add(v_met_mumu_tar2[i]);      
+	  v_sumet_ee_inc[i]->Add(v_sumet_mumu_inc[i]);
 	}
-
+  /*
   vector<TH1F*> v_met_inc = v_met_ee_inc;    //maybe use these? better name, but makes it harder to separate ee and mumu
   vector<TH1F*> v_met_tar0 = v_met_ee_tar0;
   vector<TH1F*> v_met_tar2 = v_met_ee_tar2;
-
+  */
   //---------------------------------------Format and Overflow---------------------------------------//
 
 	
@@ -817,6 +952,9 @@ int CorrDrawPlots3lep()
 	  h_format(v_nvtx_unscaled[i]);	  
 	  //overflow(v_nvtx_scaled[i]);   //figure this out later
 	  // overflow(v_nvtx_unscaled[i])
+
+	   h_format(v_sumet_ee_inc[i]);
+	   // overflow(v_sumet_ee_inc[i]);  //do in scanchain
 	}
 
   cout<<"\n End Formatting \n"<<endl;
@@ -843,7 +981,8 @@ int CorrDrawPlots3lep()
   TH1F *h_nvtxsum_scaled = (TH1F*) v_nvtx_scaled[0]->Clone("h_nvtxsum_scaled");
   TH1F *h_nvtxsum_unscaled = (TH1F*) v_nvtx_unscaled[0]->Clone("h_nvtxsum_unscaled");
   TH1F *h_phisum = (TH1F*) v_phi[0]->Clone("h_phisum");
-  
+  TH1F *h_sumetsum_ee_inc = (TH1F*) v_sumet_ee_inc[0]->Clone("h_sumetsum_ee_inc");
+
   for(int i=1; i < size-1; i++)    //start at 1 so skip cloned, -1 so you don't add the data.
 	{
 	  // cout<<"i = "<<i<<endl;
@@ -868,6 +1007,7 @@ int CorrDrawPlots3lep()
 	  h_nvtxsum_scaled->Add(v_nvtx_scaled[i]);
 	  h_nvtxsum_unscaled->Add(v_nvtx_unscaled[i]);
 	  h_phisum->Add(v_phi[i]);	  
+	  h_sumetsum_ee_inc->Add(v_sumet_ee_inc[i]);
 	}
 
   cout<<"\n End Summing \n"<<endl;
@@ -878,6 +1018,7 @@ int CorrDrawPlots3lep()
   gStyle->SetOptStat(0);
   // gStyle->SetOptFit(1111);
   //-----------------------
+
   //-----------------------------Split up X and Y---------------------------------------------//
   TH1D *h_metsum_llx_inc = h_metsum_ll_inc->ProjectionX("h_metsum_llx_inc",0,-1,"e");
   TH1D *h_metsum_lly_inc = h_metsum_ll_inc->ProjectionY("h_metsum_lly_inc",0,-1,"e");
@@ -911,9 +1052,10 @@ int CorrDrawPlots3lep()
   THStack *hs_met_mumu_tar2 = new THStack("hs_met_mumu_tar2","met mumu tar2");
   THStack *hs_met_emu_tar2 = new THStack("hs_met_emu_tar2","met emu tar2");
   //don't bother stacking nvtx, or METx,METy yet, or phi
+  THStack *hs_sumet_ee_inc = new THStack("hs_sumet_ee_inc","sumet ee inc");
 
   //Add to Stacked Histograms
-  for(int i=size-2; i >= 0; i--)  //Reverse,don't add data  >=0????????????????????????????????????????????????????
+  for(int i=size-2; i >= 0; i--)  //Reverse,don't add data
 	{
 	  hs->Add(v_mll_ee_inc[i]);
 	  hs2->Add(v_mll_mumu_inc[i]);
@@ -928,6 +1070,7 @@ int CorrDrawPlots3lep()
 	  hs_met_ee_tar2->Add(v_met_ee_tar2[i]);
 	  hs_met_mumu_tar2->Add(v_met_mumu_tar2[i]);
 	  hs_met_emu_tar2->Add(v_met_emu_tar2[i]);
+	  hs_sumet_ee_inc->Add(v_sumet_ee_inc[i]);
 	}
     
   //-----------------------------------------------------------------------------------//
@@ -1215,8 +1358,12 @@ int CorrDrawPlots3lep()
   v_met_ee_inc[size-1]->Draw("same e1 x0");
 
   pad_h5->RedrawAxis();  //c1->pad_h
-
-
+  
+  double width_mc = find_width(h_metsum_ee_inc);
+  double width_data = find_width(v_met_ee_inc[size-1]);
+  cout<<"\nINC MC Width = "<<width_mc<<endl;
+  cout<<"\nINC data Width = "<<width_data<<endl;
+  cout<<"\nINC Width difference = "<<width_data-width_mc<<endl;
   //-------------------------------Legend---------------------------------------//
   TLegend *leg5 = new TLegend(0.78, 0.63, 0.87, 0.89);
   leg5->SetLineColor(kWhite);
@@ -2577,7 +2724,7 @@ int CorrDrawPlots3lep()
   double k = h_phisum->Integral(0,-1) / v_phi[size-1]->Integral(0,-1);
   h_phidata_clone_scaled->Scale( k );  
   
-  TFile *phiRatioFile = new TFile("phiRatio.root","recreate");
+  TFile *phiRatioFile = new TFile("phiRatio_t1new.root","recreate");
   phiRatioFile->cd();
   h_phidata_clone->Write();
   h_phidata_clone_scaled->Write();
@@ -2819,7 +2966,89 @@ int CorrDrawPlots3lep()
   h_metdata_llx_tar2_clone2->Draw();
 
   //-------------------------------------------------------------//
-  */  
+  */
+
+  //---------------------SumET ee INC------------------------------//
+  //Canvas
+  TCanvas *c29=new TCanvas("c29","SumET ee inc",800,800);
+  TPad *pad_h29 = new TPad("pad_h29","Histo Pad29",0., 0, 1., 0.8);
+  TPad *pad_r29 = new TPad("pad_r29","Ratio Pad29",0., 0.8, 1., 1.);
+
+  pad_h29->Draw();
+  pad_r29->Draw();
+
+  pad_h29->SetLogy();  //c1->pad_h
+
+  pad_h29->cd();  //change pad
+
+  v_sumet_ee_inc[0]->SetTitle("ee+mumu data vs MC SumET (Inclusive)");
+  v_sumet_ee_inc[0]->Draw();
+  hs_sumet_ee_inc->Draw("histsame");
+ 
+  v_sumet_ee_inc[size-1]->Draw("same e1 x0");
+
+  pad_h29->RedrawAxis();  //c1->pad_h
+  
+  // double width_mc = find_width(h_sumetsum_ee_inc);
+  //double width_data = find_width(v_sumet_ee_inc[size-1]);
+  // cout<<"\nINC MC Width = "<<width_mc<<endl;
+  // cout<<"\nINC data Width = "<<width_data<<endl;
+  //cout<<"\nINC Width difference = "<<width_data-width_mc<<endl;
+  //-------------------------------Legend---------------------------------------//
+  TLegend *leg29 = new TLegend(0.78, 0.63, 0.87, 0.89);
+  leg29->SetLineColor(kWhite);
+  leg29->SetTextFont(42); 
+  leg29->SetTextSize(0.026);
+  leg29->SetShadowColor(kWhite); 
+  leg29->SetFillColor(kWhite); 
+  leg29->AddEntry("h_sumet_ee_inc_data","data","ep");
+  leg29->AddEntry("h_sumet_ee_inc_zjets","Z+jets","F");
+  leg29->AddEntry("h_sumet_ee_inc_wz","WZ","F");
+  leg29->AddEntry("h_sumet_ee_inc_zz","ZZ","F");
+  leg29->AddEntry("h_sumet_ee_inc_ttbar","ttbar","F");
+  leg29->AddEntry("h_sumet_ee_inc_singlet","single top","F");
+  leg29->AddEntry("h_sumet_ee_inc_ww","WW","F");
+  leg29->AddEntry("h_sumet_ee_inc_ttv","ttV","F");
+  leg29->AddEntry("h_sumet_ee_inc_vvv","VVV","F");
+
+  leg29->Draw();
+  //-------------------------------------------------------------//
+  //---------------------Ratio Pad-------------------------------//
+
+  pad_r29->cd();
+
+  TH1F *h_sumet_ee_inc_data_clone = (TH1F*) v_sumet_ee_inc[size-1]->Clone("h_sumet_ee_inc_data_clone");
+
+  //  overflow(h_sumetsum_ee_inc);
+  
+  //Divide
+  h_sumet_ee_inc_data_clone->Divide(h_sumet_ee_inc_data_clone,h_sumetsum_ee_inc);
+
+  h_sumet_ee_inc_data_clone->GetXaxis()->SetRangeUser(0,3000); 
+  h_sumet_ee_inc_data_clone->GetYaxis()->SetRangeUser(0,3);
+  h_sumet_ee_inc_data_clone->GetYaxis()->SetNdivisions(4);
+  h_sumet_ee_inc_data_clone->GetYaxis()->SetLabelSize(.12);
+  h_sumet_ee_inc_data_clone->GetYaxis()->SetTitle("data/MC");
+
+  pad_r29->SetGridy();
+
+  h_sumet_ee_inc_data_clone->Draw();
+
+  /*
+  TH1D *h_sumet_ee_inc_data_clone_scaled = (TH1D*) h_sumet_ee_inc_data_clone->Clone("h_sumet_ee_inc_data_clone_scaled");
+
+  double k_sumet = h_sumetsum_ee_inc->Integral(0,-1) / h_sumet_ee_inc_data->Integral(0,-1);
+  h_sumet_ee_inc_data_clone_scaled->Scale( k_sumet );  
+  
+  TFile *sumetRatioFile = new TFile("sumet_Ratio.root","recreate");
+  sumetRatioFile->cd();
+  h_sumet_ee_inc_data_clone->Write();
+  h_sumet_ee_inc_data_clone_scaled->Write();
+  sumetRatioFile->Close();  
+  */
+
+  //-------------------------------------------------------------//
+  
   /*
   c1->SaveAs("./3lep_pics/mll_inc.jpg");
   //  c2->SaveAs("./3lep_pics/mll_mumu_inc.jpg");

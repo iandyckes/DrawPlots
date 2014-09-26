@@ -29,6 +29,17 @@
 using namespace std;
 using namespace ZMet;
 
+void fillHist( TH1F* &hist, double variable, const double weight )
+{
+  float min = hist->GetXaxis()->GetXmin();
+  float max = hist->GetXaxis()->GetXmax();
+
+  if (variable > max) variable = hist->GetBinCenter(hist->GetNbinsX());
+  if (variable < min) variable = hist->GetBinCenter(1);
+
+  hist->Fill(variable, weight);
+}
+
 int ScanChain( TChain* chain, bool fast = true, int nEvents = -1, string skimFilePrefix = "test") {
 
 
@@ -128,9 +139,25 @@ int ScanChain( TChain* chain, bool fast = true, int nEvents = -1, string skimFil
   TH1F* h_phi= new TH1F("h_phi","phi distribution",40,-TMath::Pi(),TMath::Pi());
   h_phi->SetDirectory(rootdir);
   h_phi->Sumw2();
-
+  //-------
   TFile *InputFile = new TFile("phiRatio.root","read");
   TH1F *h_phi_ratio = (TH1F*) InputFile->Get("h_phidata_clone_scaled")->Clone("h_phi_ratio");
+  //-------
+  TH1F* h_sumet_ee_inc = new TH1F("h_sumet_ee_inc","ee SumET (Inclusive)",2500,0,2500);//350,0,350 for all met histos
+  h_sumet_ee_inc->SetDirectory(rootdir);
+  h_sumet_ee_inc->Sumw2();
+
+  TH1F* h_sumet_mumu_inc = new TH1F("h_sumet_mumu_inc","mumu SumET (Inclusive)",2500,0,2500);//350,0,350 for all met histos
+  h_sumet_mumu_inc->SetDirectory(rootdir);
+  h_sumet_mumu_inc->Sumw2();
+
+  TH1F* h_sumet_emu_inc = new TH1F("h_sumet_emu_inc","emu SumET (Inclusive)",2500,0,2500);//350,0,350 for all met histos
+  h_sumet_emu_inc->SetDirectory(rootdir);
+  h_sumet_emu_inc->Sumw2();
+  //-------
+  TFile *InputFile_sumet = new TFile("sumet_Ratio.root","read");
+  TH1F *h_sumet_ratio = (TH1F*) InputFile_sumet->Get("h_sumet_ee_inc_data_clone_scaled")->Clone("h_sumet_ratio");
+  //-------
 
   // Loop over events to Analyze
   unsigned int nEventsTotal = 0;
@@ -180,7 +207,7 @@ int ScanChain( TChain* chain, bool fast = true, int nEvents = -1, string skimFil
 	  if( ( abs( zmet.lep1().Eta()) > 1.4 && abs( zmet.lep1().Eta()) < 1.6) || ( abs( zmet.lep2().Eta()) > 1.4 && abs( zmet.lep2().Eta()) < 1.6) ) 
 		{continue;}
 
-	  double weight_mc=zmet.weight()*19.5*zmet.trgeff()*zmet.vtxweight()*( h_phi_ratio->GetBinContent(h_phi_ratio->FindBin(zmet.pfmetphi())) );
+	  double weight_mc=zmet.weight()*19.5*zmet.trgeff()*zmet.vtxweight()*( h_phi_ratio->GetBinContent(h_phi_ratio->FindBin(zmet.pfmetphi())) )*( h_sumet_ratio->GetBinContent(h_sumet_ratio->FindBin(zmet.pfsumet())) );
 	  double weight_data=1.;
 	  //cout<< h_phi_ratio->GetBinContent(h_phi_ratio->FindBin(zmet.pfmetphi()))<<endl;
 	  
@@ -242,6 +269,7 @@ int ScanChain( TChain* chain, bool fast = true, int nEvents = -1, string skimFil
 			  if(zmet.dilmass() > 81. && zmet.dilmass() < 101. /*&& zmet.lep3().Pt() <= 10.*/ )             //Check this.  Only apply to MET histos
 				{
 				  h_met_ee_inc->Fill(zmet.pfmet(),weight_data);
+				  fillHist(h_sumet_ee_inc, zmet.pfsumet(),weight_data);
 				  h_met_ll_inc->Fill(zmet.pfmet()*TMath::Cos( zmet.pfmetphi() ), zmet.pfmet()*TMath::Sin( zmet.pfmetphi() ), weight_data);
 				 
 				  if(zmet.njets()==0)
@@ -266,6 +294,7 @@ int ScanChain( TChain* chain, bool fast = true, int nEvents = -1, string skimFil
 			  if(zmet.dilmass() > 81. && zmet.dilmass() < 101. /*&& zmet.lep3().Pt() <= 10.*/)             //check this.
 				{		  
 				  h_met_mumu_inc->Fill(zmet.pfmet(),weight_data);
+				  fillHist(h_sumet_mumu_inc, zmet.pfsumet(),weight_data);
 				  h_met_ll_inc->Fill(zmet.pfmet()*TMath::Cos( zmet.pfmetphi() ), zmet.pfmet()*TMath::Sin( zmet.pfmetphi() ), weight_data);
 			
 				  if(zmet.njets()==0)
@@ -291,6 +320,7 @@ int ScanChain( TChain* chain, bool fast = true, int nEvents = -1, string skimFil
 			  if(zmet.dilmass() > 81. && zmet.dilmass() < 101. /*&& zmet.lep3().Pt() <= 10.*/)             //check this.
 				{		  
 				  h_met_emu_inc->Fill(zmet.pfmet(),weight_data);
+				  fillHist(h_sumet_emu_inc, zmet.pfsumet(),weight_data);
 				  h_met_emu2_inc->Fill(zmet.pfmet()*TMath::Cos( zmet.pfmetphi() ), zmet.pfmet()*TMath::Sin( zmet.pfmetphi() ), weight_data);
 			
 				  if(zmet.njets()==0)
@@ -326,7 +356,8 @@ int ScanChain( TChain* chain, bool fast = true, int nEvents = -1, string skimFil
 			  if(zmet.dilmass() > 81. && zmet.dilmass() < 101. /* && zmet.lep3().Pt() <= 10.*/)
 				{
 				  h_met_ee_inc->Fill(zmet.pfmet(),weight_mc);
-				  h_met_ll_inc->Fill(zmet.pfmet()*TMath::Cos( zmet.pfmetphi() ), zmet.pfmet()*TMath::Sin( zmet.pfmetphi() ), weight_mc);					
+				  fillHist(h_sumet_ee_inc, zmet.pfsumet(),weight_mc);
+				  h_met_ll_inc->Fill(zmet.pfmet()*TMath::Cos( zmet.pfmetphi() ), zmet.pfmet()*TMath::Sin( zmet.pfmetphi() ), weight_mc);
 				
 				  if(zmet.njets()==0)
 					{
@@ -349,6 +380,7 @@ int ScanChain( TChain* chain, bool fast = true, int nEvents = -1, string skimFil
 			  if(zmet.dilmass() > 81. && zmet.dilmass() < 101. /* && zmet.lep3().Pt() <= 10.*/)
 				{
 				  h_met_mumu_inc->Fill(zmet.pfmet(),weight_mc);
+				  fillHist(h_sumet_mumu_inc, zmet.pfsumet(),weight_mc);
 				  h_met_ll_inc->Fill(zmet.pfmet()*TMath::Cos( zmet.pfmetphi() ), zmet.pfmet()*TMath::Sin( zmet.pfmetphi() ), weight_mc);
 
 				  if(zmet.njets()==0)
@@ -374,6 +406,7 @@ int ScanChain( TChain* chain, bool fast = true, int nEvents = -1, string skimFil
 			  if(zmet.dilmass() > 81. && zmet.dilmass() < 101. /* && zmet.lep3().Pt() <= 10.*/)
 				{
 				  h_met_emu_inc->Fill(zmet.pfmet(),weight_mc);
+				  fillHist(h_sumet_emu_inc, zmet.pfsumet(),weight_mc);
 				  h_met_emu2_inc->Fill(zmet.pfmet()*TMath::Cos( zmet.pfmetphi() ), zmet.pfmet()*TMath::Sin( zmet.pfmetphi() ), weight_mc);
 
 				  if(zmet.njets()==0)
@@ -434,7 +467,9 @@ int ScanChain( TChain* chain, bool fast = true, int nEvents = -1, string skimFil
   h_nvtx_scaled->Write();
   h_nvtx_unscaled->Write();
   h_phi->Write();
-
+  h_sumet_ee_inc->Write();
+  h_sumet_mumu_inc->Write();
+  h_sumet_emu_inc->Write();
 
   OutputFile->Close();
 
